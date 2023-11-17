@@ -23,13 +23,9 @@ logger.logSucces('Succes message.')
 
 # Options
 Initialize the Logger with the following options:
-<ul>
-    `logFilePath` (optional): The path to the log file. Default is 'default-log-file.log'.
-</ul>
+- `logFilePath` (optional): The path to the log file. Default is 'default-log-file.log'.
 
 # Methods
-<ul>
-    <li>`logError` - Logs an error message to the configured log file.</li>
-    <li>`logSucces` - Logs an succes message to the configured log file.</li>
-    <li>`logInfo` - Logs an info message to the configured log file.</li>
-</ul>
+- `logError('An error has occurred.')` - Logs an error message to the configured log file.
+- `logSucces('Succes message.')` - Logs an succes message to the configured log file.
+- `logInfo('Important information.')` - Logs an info message to the configured log file.
