@@ -3,12 +3,12 @@ A simple <a href="" target=""><strong>Node.Js</strong></a> module with configura
 
 # Installation
 ```bash
-npm install logger
+npm install node-logger-simple
 ```
 
 # Usage
 ```js
-const Logger = require('logger');
+const Logger = require('node-logger-simple');
 
 const options = {
   logFilePath: 'my-log-file.log'
