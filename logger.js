@@ -3,7 +3,7 @@ const path = require('path');
 
 class Logger {
     constructor(options = {}) {
-        this.logFilePath = options.logFilePath || 'default-log-file.log';
+        this.logFilePath = options.logFilePath+".log" || 'default-log-file.log';
 
         if (!fs.existsSync(this.logFilePath)) {
             fs.writeFileSync(this.logFilePath, '', { flag: 'wx' });

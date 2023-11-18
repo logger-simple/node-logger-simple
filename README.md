@@ -1,5 +1,5 @@
 # Logger Module
-A simple <a href="" target=""><strong>Node.Js</strong></a> module with configurable options.
+A simple <a href="https://nodejs.org/en" target="_blank"><strong>Node.Js</strong></a> module with configurable options.
 
 # Installation
 ```bash
@@ -10,11 +10,13 @@ npm install node-logger-simple
 ```js
 const Logger = require('node-logger-simple');
 
-const options = {
-  logFilePath: 'my-log-file.log'
-};
+// With personalised file
+const logger = new Logger({
+  logFilePath: "my-log-file"
+});
 
-const logger = new Logger(options);
+// With default file
+const logger = new Logger();
 
 logger.logError('An error has occurred.');
 logger.logInfo('Important information.');
