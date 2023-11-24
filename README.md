@@ -8,7 +8,7 @@ npm install node-logger-simple
 
 # Usage
 ```js
-const Logger = require('node-logger-simple');
+const { FileLogger } = require('node-logger-simple');
 
 // With personalised file
 const logger = new Logger({
