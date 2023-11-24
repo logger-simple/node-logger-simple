@@ -2,7 +2,7 @@ const { formatLogMessage, appendToLogFile } = require('../Functions/FileLoggerFu
 
 class FileLogger {
     constructor(options = {}) {
-        this.logFilePath = options.logFilePath+".log" || 'default-log-file.log';
+        this.logFilePath = options.logFilePath+".log" ?? 'default-log-file.log';
     }
 
     logError(errorMessage) {
