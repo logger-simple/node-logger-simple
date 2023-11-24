@@ -1,14 +1,14 @@
 {
-  "name": "logger",
+  "name": "node-logger-simple",
   "version": "2.0.0",
   "description": "A simple Node.Js logger module with configurable options.",
-  "main": "logger.js",
+  "main": "App.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Cut0x/logger.git"
+    "url": "git+https://github.com/Cut0x/node-logger-simple.git"
   },
   "keywords": [
     "logger",
@@ -28,7 +28,7 @@
   "author": "Cut0x",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Cut0x/logger/issues"
+    "url": "https://github.com/Cut0x/node-logger-simple/issues"
   },
-  "homepage": "https://github.com/Cut0x/logger#readme"
+  "homepage": "https://github.com/Cut0x/node-logger-simple#readme"
 }
