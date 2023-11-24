@@ -2,7 +2,11 @@ const { formatLogMessage, appendToLogFile } = require('../Functions/FileLoggerFu
 
 class FileLogger {
     constructor(options = {}) {
-        this.logFilePath = options.logFilePath+".log" ?? 'default-log-file.log';
+        this.logFilePath = options.logFilePath+".log";
+
+        if (!this.logFilePath) {
+            throw new Error('Please set the "logFilePath" option! (https://github.com/Cut0x/node-logger-simple#usage"')
+        }
     }
 
     logError(errorMessage) {

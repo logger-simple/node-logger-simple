@@ -10,13 +10,10 @@ npm install node-logger-simple
 ```js
 const { FileLogger } = require('node-logger-simple');
 
-// With personalised file
+// personalised file is required
 const logger = new FileLogger({
   logFilePath: "my-log-file"
 });
-
-// With default file
-const logger = new FileLogger();
 
 logger.logError('An error has occurred.');
 logger.logInfo('Important information.');
