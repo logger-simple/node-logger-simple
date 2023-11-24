@@ -5,19 +5,21 @@ class FileLogger {
         this.logFilePath = options.logFilePath+".log" || 'default-log-file.log';
     }
 
+    file = this.logFilePath;
+
     logError(errorMessage) {
         const logMessage = formatLogMessage('ERROR', errorMessage);
-        appendToLogFile(this.logFilePath, logMessage);
+        appendToLogFile(file, logMessage);
     }
 
     logInfo(infoMessage) {
         const logMessage = formatLogMessage('INFO', infoMessage);
-        appendToLogFile(this.logFilePath, logMessage);
+        appendToLogFile(file, logMessage);
     }
 
     logSucces(succesMessage) {
         const logMessage = formatLogMessage('SUCCES', succesMessage);
-        appendToLogFile(this.logFilePath, logMessage);
+        appendToLogFile(file, logMessage);
     }
 }
 
