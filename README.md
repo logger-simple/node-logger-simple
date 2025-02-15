@@ -6,7 +6,7 @@ A simple <a href="https://nodejs.org/en" target="_blank"><strong>Node.Js</strong
 npm install node-logger-simple
 ```
 
-[x] Head to [node-ls.valloic.dev](https://node-ls.valloic.dev/) to retrieve the required information, and to view the logs.
+[x] Head to [nodels.valloic.dev](https://nodels.valloic.dev/) to retrieve the required information, and to view the logs.
 
 # ✏️ Usage
 ```js
