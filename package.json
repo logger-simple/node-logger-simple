@@ -23,7 +23,7 @@
     "file"
   ],
   "dependencies": {
-    "fs": "0.0.1-security"
+    "axios": "^1.7.9"
   },
   "author": "Cut0x",
   "license": "ISC",

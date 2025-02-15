@@ -6,23 +6,39 @@ A simple <a href="https://nodejs.org/en" target="_blank"><strong>Node.Js</strong
 npm install node-logger-simple
 ```
 
+[x] Head to [node-ls.valloic.dev](https://node-ls.valloic.dev/) to retrieve the required information, and to view the logs.
+
 # ✏️ Usage
 ```js
-const { FileLogger } = require('node-logger-simple');
+const { Logger } = require('node-logger-simple');
 
-// personalised file is required
-const logger = new FileLogger({
-  logFilePath: "my-log-file"
+const logger = new Logger({
+  app_id: 'app_CODE', // https://node-ls.valloic.dev/app.php
+  api_key: 'API_KEY', // https://node-ls.valloic.dev/app.php
 });
 
-logger.logError('An error has occurred.');
-logger.logInfo('Important information.');
-logger.logSucces('Succes message.')
+async function runTests() {
+  try {
+    await logger.logInfo("Info test from test.js");
+
+    await logger.logError("Error test from test.js");
+
+    await logger.logSucces("Success test from test.js");
+  } catch (err) {
+    console.error("An error occurred during the tests:", err);
+  }
+}
+
+runTests();
+
+// Or just
+logger.logSucces("Success test from test.js");
 ```
 
 # 📣 Options
 Initialize the Logger with the following options:
-- `logFilePath` : Allows you to choose the file name.
+- `app_id` : Your application ID *(required)*.
+- `api_key`: Your application key *(required)*.
 
 # 📜 Methods
 - `logError('An error has occurred.')` - Logs an error message to the configured log file.
