@@ -7,13 +7,10 @@ class Logger {
     }
     this.app_id = app_id;
     this.api_key = api_key;
-    // Utilise l'URL donnée ou une valeur par défaut.
     this.apiUrl = apiUrl || "https://api.valloic.dev/";
   }
 
-  // Méthode générique pour envoyer un log en utilisant une requête GET
   async sendLog(logLevel, message) {
-    // Encodage des paramètres dans l'URL
     const url = `${this.apiUrl}?action=logger&request=new_log&app_id=${encodeURIComponent(this.app_id)}&api_key=${encodeURIComponent(this.api_key)}&logLevel=${encodeURIComponent(logLevel)}&message=${encodeURIComponent(message)}`;
     try {
       const response = await axios.get(url);
