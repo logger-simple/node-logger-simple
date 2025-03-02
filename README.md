@@ -13,8 +13,8 @@ npm install node-logger-simple
 const { Logger } = require('node-logger-simple');
 
 const logger = new Logger({
-  app_id: 'app_CODE', // https://node-ls.valloic.dev/app.php
-  api_key: 'API_KEY', // https://node-ls.valloic.dev/app.php
+  app_id: 'app_CODE', // https://panel.node-ls.app/app.php
+  api_key: 'API_KEY', // https://panel.node-ls.app/app.php
 });
 
 async function runTests() {
