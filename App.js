@@ -7,7 +7,7 @@ class Logger {
     }
     this.app_id = app_id;
     this.api_key = api_key;
-    this.apiUrl = apiUrl || "https://api.valloic.dev/";
+    this.apiUrl = apiUrl || "https://api.node-ls.app/";
   }
 
   async sendLog(logLevel, message) {
