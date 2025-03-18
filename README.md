@@ -6,15 +6,15 @@ A simple <a href="https://nodejs.org/en" target="_blank"><strong>Node.Js</strong
 npm install node-logger-simple
 ```
 
-[x] Head to [nodels.valloic.dev](https://nodels.valloic.dev/) to retrieve the required information, and to view the logs.
+[x] Head to [node-ls.app](https://node-ls.app/) to retrieve the required information, and to view the logs.
 
 # ✏️ Usage
 ```js
 const { Logger } = require('node-logger-simple');
 
 const logger = new Logger({
-  app_id: 'app_CODE', // https://panel.node-ls.app/app.php
-  api_key: 'API_KEY', // https://panel.node-ls.app/app.php
+  app_id: 'app_CODE', // https://panel.node-ls.app/
+  api_key: 'API_KEY', // https://panel.node-ls.app/
 });
 
 async function runTests() {
