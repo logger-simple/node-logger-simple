@@ -150,7 +150,6 @@ const logger = new Logger({
   api_key: string,             // Your API key
   
   // Optional
-  apiUrl: string,              // Custom API endpoint
   options: {
     // Connection Settings
     timeout: 30000,            // Request timeout (ms)
@@ -560,7 +559,6 @@ const createLogger = (appName) => {
   return new Logger({
     app_id: process.env.LOGGER_APP_ID || `${appName}_${process.env.NODE_ENV}`,
     api_key: process.env.LOGGER_API_KEY,
-    apiUrl: process.env.LOGGER_API_URL,
     options: {
       // Production settings
       autoHeartbeat: true,

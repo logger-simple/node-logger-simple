@@ -1,110 +1,93 @@
-const axios = require('axios');
+const https = require('https');
+const http = require('http');
+const { URL } = require('url');
 const EventEmitter = require('events');
 
-const { version } = require('./package.json');
-
 /**
- * Logger Simple - Enhanced Node.js Module
- * Version 2.1 with improved API integration and crash detection
+ * Logger Simple - Module Node.js Simplifié
+ * Version 6.1.0 - Approche simplifiée sans dépendances externes
  */
 class Logger extends EventEmitter {
-  constructor({ app_id, api_key, apiUrl, options = {} }) {
+  constructor(config) {
     super();
     
-    if (!app_id || !api_key) {
-      throw new Error("app_id and api_key are required.");
+    if (!config || !config.app_id || !config.api_key) {
+      throw new Error('app_id and api_key are required');
     }
     
-    // Main configuration
-    this.app_id = app_id;
-    this.api_key = api_key;
-    this.apiUrl = "https://api.logger-simple.com/"; // Require : no edit !
+    this.app_id = config.app_id;
+    this.api_key = config.api_key;
+    this.apiUrl = 'https://api.logger-simple.com/'; // URL fixe
     
-    // Advanced options
+    // Options par défaut
     this.options = {
-      autoHeartbeat: options.autoHeartbeat !== false,
-      heartbeatInterval: options.heartbeatInterval || 300000, // 5 minutes
-      retryAttempts: options.retryAttempts || 3,
-      retryDelay: options.retryDelay || 1000,
-      timeout: options.timeout || 30000,
-      enableCrashLogging: options.enableCrashLogging !== false,
-      enableMetrics: options.enableMetrics !== false,
-      maxLogLength: options.maxLogLength || 10000,
-      batchSize: options.batchSize || 100,
-      flushInterval: options.flushInterval || 5000,
-      shutdownTimeout: options.shutdownTimeout || 5000,
-      enableGracefulShutdown: options.enableGracefulShutdown !== false,
-      ...options
+      timeout: config.timeout || 30000,
+      retryAttempts: config.retryAttempts || 3,
+      retryDelay: config.retryDelay || 1000,
+      enableCrashLogging: config.enableCrashLogging !== false,
+      enableGracefulShutdown: config.enableGracefulShutdown !== false,
+      autoHeartbeat: config.autoHeartbeat !== false,
+      heartbeatInterval: config.heartbeatInterval || 300000,
+      batchSize: config.batchSize || 100,
+      flushInterval: config.flushInterval || 5000,
+      maxLogLength: config.maxLogLength || 10000,
+      ...config.options
     };
     
-    // Internal state
-    this.heartbeatIntervalId = null;
+    // État interne
     this.isConnected = false;
-    this.logQueue = [];
-    this.batchTimer = null;
     this.isShuttingDown = false;
-    this.shutdownPromise = null;
+    this.heartbeatTimer = null;
+    this.batchTimer = null;
+    this.logQueue = [];
     this.metrics = {
       logsSent: 0,
       logsSuccess: 0,
       logsError: 0,
-      lastHeartbeat: null,
-      connectionErrors: 0,
-      averageResponseTime: 0,
       startTime: new Date(),
-      crashes: 0,
-      gracefulShutdowns: 0
+      lastHeartbeat: null
     };
     
-    // HTTP client configuration
-    this.httpClient = axios.create({
-      timeout: this.options.timeout,
-      headers: {
-        'User-Agent': `Logger-Simple-NodeJS/${version}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    // Initialize
+    // Initialisation
     this.init();
   }
   
   /**
-   * Logger initialization
+   * Initialisation du logger
    */
-  async init() {
+  init() {
     try {
-      // Initial connection test
-      await this.testConnection();
-      
-      // Start automatic heartbeat
-      if (this.options.autoHeartbeat) {
-        this.startHeartbeat();
-      }
-      
-      // Setup error handling
+      // Configuration de la détection de crash
       if (this.options.enableCrashLogging) {
-        this.setupCrashLogging();
+        this.setupCrashDetection();
       }
       
-      // Setup graceful shutdown
+      // Configuration de l'arrêt gracieux
       if (this.options.enableGracefulShutdown) {
         this.setupGracefulShutdown();
       }
       
-      // Start batch processing
+      // Démarrage du heartbeat
+      if (this.options.autoHeartbeat) {
+        this.startHeartbeat();
+      }
+      
+      // Démarrage du traitement en lot
       this.startBatchProcessing();
       
-      // Log successful initialization
-      await this.logInfo(`Logger initialized successfully for app: ${this.app_id}`, {
-        version: `${version}`,
-        options: this.options,
-        startTime: this.metrics.startTime.toISOString()
-      });
-      
-      this.emit('ready');
-      console.log(`[Logger] Initialized successfully for app: ${this.app_id}`);
-      
+      // Test de connexion initial
+      this.testConnection()
+        .then(() => {
+          this.isConnected = true;
+          this.emit('ready');
+          this.emit('connected');
+          console.log('[Logger] Ready and connected');
+        })
+        .catch((error) => {
+          this.emit('error', error);
+          console.error('[Logger] Connection failed:', error.message);
+        });
+        
     } catch (error) {
       this.emit('error', error);
       console.error('[Logger] Initialization failed:', error.message);
@@ -112,49 +95,94 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Test API connection
+   * Test de connexion à l'API
    */
   async testConnection() {
-    try {
-      const response = await this.makeRequest('health', {}, 'GET');
-      this.isConnected = true;
-      this.metrics.connectionErrors = 0;
-      this.emit('connected');
-      return response;
-    } catch (error) {
-      this.isConnected = false;
-      this.metrics.connectionErrors++;
-      this.emit('disconnected', error);
-      throw error;
-    }
+    return new Promise((resolve, reject) => {
+      const data = JSON.stringify({
+        action: 'logger',
+        request: 'health',
+        app_id: this.app_id,
+        api_key: this.api_key
+      });
+      
+      const parsedUrl = new URL(this.apiUrl);
+      const protocol = parsedUrl.protocol === 'https:' ? https : http;
+      
+      const options = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+        path: parsedUrl.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(data),
+          'User-Agent': 'Logger-Simple-NodeJS/6.1.0'
+        },
+        timeout: this.options.timeout
+      };
+      
+      const req = protocol.request(options, (res) => {
+        let responseData = '';
+        
+        res.on('data', (chunk) => {
+          responseData += chunk;
+        });
+        
+        res.on('end', () => {
+          try {
+            const response = JSON.parse(responseData);
+            if (response.success) {
+              resolve(response);
+            } else {
+              reject(new Error(response.error || 'API request failed'));
+            }
+          } catch (error) {
+            reject(new Error('Invalid JSON response'));
+          }
+        });
+      });
+      
+      req.on('error', (error) => {
+        reject(new Error(`Network error: ${error.message}`));
+      });
+      
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
+      });
+      
+      req.write(data);
+      req.end();
+    });
   }
   
   /**
-   * Send log with error handling and retry
+   * Envoyer un log
    */
-  async sendLog(logLevel, message, context = null, options = {}) {
-    if (this.isShuttingDown && !options.allowDuringShutdown) {
-      console.warn('[Logger] Skipping log during shutdown:', message);
+  async sendLog(logLevel, message, context = null) {
+    if (this.isShuttingDown) {
+      console.warn('[Logger] Skipping log during shutdown');
       return null;
     }
     
-    const startTime = Date.now();
-    
     try {
       // Validation
-      if (!['success', 'info', 'warning', 'error', 'critical'].includes(logLevel)) {
+      const validLevels = ['success', 'info', 'warning', 'error', 'critical'];
+      if (!validLevels.includes(logLevel)) {
         throw new Error(`Invalid log level: ${logLevel}`);
       }
       
-      if (typeof message !== 'string' || message.length === 0) {
+      if (!message || typeof message !== 'string') {
         throw new Error('Message must be a non-empty string');
       }
       
+      // Limitation de taille
       if (message.length > this.options.maxLogLength) {
         message = message.substring(0, this.options.maxLogLength) + '... [TRUNCATED]';
       }
       
-      // Prepare data according to API format
+      // Préparer les données
       const logData = {
         action: 'logger',
         request: 'new_log',
@@ -168,13 +196,12 @@ class Logger extends EventEmitter {
         logData.context = typeof context === 'string' ? context : JSON.stringify(context);
       }
       
-      // Send with retry
+      // Envoyer avec retry
       const result = await this.makeRequestWithRetry(logData);
       
-      // Update metrics
+      // Mise à jour des métriques
       this.metrics.logsSent++;
       this.metrics.logsSuccess++;
-      this.updateAverageResponseTime(Date.now() - startTime);
       
       this.emit('logSent', { level: logLevel, message, result });
       return result;
@@ -182,18 +209,13 @@ class Logger extends EventEmitter {
     } catch (error) {
       this.metrics.logsError++;
       this.emit('logError', { level: logLevel, message, error });
-      
-      if (options.throwOnError !== false) {
-        throw error;
-      }
-      
       console.error(`[Logger] Failed to send ${logLevel} log:`, error.message);
-      return null;
+      throw error;
     }
   }
   
   /**
-   * Simplified logging methods
+   * Méthodes de logging simplifiées
    */
   async logSuccess(message, context = null) {
     return this.sendLog('success', message, context);
@@ -216,13 +238,66 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Batch logging (for high volume)
+   * Envoyer un heartbeat
+   */
+  async sendHeartbeat() {
+    try {
+      const data = {
+        action: 'logger',
+        request: 'heartbeat',
+        app_id: this.app_id,
+        api_key: this.api_key
+      };
+      
+      const result = await this.makeRequest(data);
+      this.metrics.lastHeartbeat = new Date();
+      this.isConnected = true;
+      this.emit('heartbeat', result);
+      return result;
+      
+    } catch (error) {
+      this.isConnected = false;
+      this.emit('heartbeatError', error);
+      console.error('[Logger] Heartbeat failed:', error.message);
+      throw error;
+    }
+  }
+  
+  /**
+   * Démarrer le heartbeat automatique
+   */
+  startHeartbeat() {
+    if (this.heartbeatTimer) return;
+    
+    this.heartbeatTimer = setInterval(async () => {
+      if (!this.isShuttingDown) {
+        try {
+          await this.sendHeartbeat();
+        } catch (error) {
+          // Heartbeat failed, will retry next time
+        }
+      }
+    }, this.options.heartbeatInterval);
+    
+    console.log('[Logger] Heartbeat started');
+  }
+  
+  /**
+   * Arrêter le heartbeat
+   */
+  stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+      console.log('[Logger] Heartbeat stopped');
+    }
+  }
+  
+  /**
+   * Logging en lot
    */
   queueLog(logLevel, message, context = null) {
-    if (this.isShuttingDown) {
-      console.warn('[Logger] Skipping queued log during shutdown:', message);
-      return;
-    }
+    if (this.isShuttingDown) return;
     
     this.logQueue.push({ logLevel, message, context, timestamp: Date.now() });
     
@@ -231,6 +306,9 @@ class Logger extends EventEmitter {
     }
   }
   
+  /**
+   * Vider la queue de logs
+   */
   async flushLogs() {
     if (this.logQueue.length === 0) return;
     
@@ -238,10 +316,7 @@ class Logger extends EventEmitter {
     
     try {
       const promises = logsToSend.map(log => 
-        this.sendLog(log.logLevel, log.message, log.context, { 
-          throwOnError: false,
-          allowDuringShutdown: true 
-        })
+        this.sendLog(log.logLevel, log.message, log.context).catch(() => {})
       );
       
       await Promise.allSettled(promises);
@@ -254,65 +329,7 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Enhanced heartbeat
-   */
-  async sendHeartbeat() {
-    try {
-      const data = {
-        action: 'logger',
-        request: 'heartbeat',
-        app_id: this.app_id,
-        api_key: this.api_key
-      };
-      
-      const result = await this.makeRequest('heartbeat', data);
-      this.metrics.lastHeartbeat = new Date();
-      this.isConnected = true;
-      this.emit('heartbeat', result);
-      
-      return result;
-      
-    } catch (error) {
-      this.isConnected = false;
-      this.emit('heartbeatError', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Start automatic heartbeat
-   */
-  startHeartbeat() {
-    if (this.heartbeatIntervalId) {
-      return;
-    }
-    
-    this.heartbeatIntervalId = setInterval(async () => {
-      if (this.isShuttingDown) return;
-      
-      try {
-        await this.sendHeartbeat();
-      } catch (error) {
-        console.error('[Logger] Heartbeat failed:', error.message);
-      }
-    }, this.options.heartbeatInterval);
-    
-    console.log(`[Logger] Heartbeat started (interval: ${this.options.heartbeatInterval}ms)`);
-  }
-  
-  /**
-   * Stop heartbeat
-   */
-  stopHeartbeat() {
-    if (this.heartbeatIntervalId) {
-      clearInterval(this.heartbeatIntervalId);
-      this.heartbeatIntervalId = null;
-      console.log('[Logger] Heartbeat stopped');
-    }
-  }
-  
-  /**
-   * Start batch processing
+   * Démarrer le traitement en lot
    */
   startBatchProcessing() {
     this.batchTimer = setInterval(() => {
@@ -323,119 +340,59 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Get logs
-   */
-  async getLogs(filters = {}) {
-    const data = {
-      action: 'logger',
-      request: 'get_logs',
-      app_id: this.app_id,
-      api_key: this.api_key,
-      ...filters
-    };
-    
-    return this.makeRequest('get_logs', data);
-  }
-  
-  /**
-   * Get statistics
-   */
-  async getStats(days = 7) {
-    const data = {
-      action: 'logger',
-      request: 'stats',
-      app_id: this.app_id,
-      api_key: this.api_key,
-      days: days
-    };
-    
-    return this.makeRequest('stats', data);
-  }
-  
-  /**
-   * Get local metrics
+   * Obtenir les métriques
    */
   getMetrics() {
     return {
       ...this.metrics,
       isConnected: this.isConnected,
       queueSize: this.logQueue.length,
-      uptime: process.uptime(),
-      memoryUsage: process.memoryUsage(),
+      uptime: Math.round((Date.now() - this.metrics.startTime.getTime()) / 1000),
       isShuttingDown: this.isShuttingDown
     };
   }
   
   /**
-   * Enhanced crash detection and logging
+   * Configuration de la détection de crash
    */
-  setupCrashLogging() {
-    // Uncaught exceptions
+  setupCrashDetection() {
+    // Exceptions non gérées
     process.on('uncaughtException', async (error) => {
-      this.metrics.crashes++;
-      console.error('[Logger] Uncaught Exception detected:', error.message);
+      console.error('[Logger] Uncaught Exception:', error.message);
       
       try {
-        await this.logCritical('Uncaught Exception detected - Application will exit', {
+        await this.sendLog('critical', 'Uncaught Exception - Application will exit', {
           error: error.message,
           stack: error.stack,
-          timestamp: new Date().toISOString(),
           pid: process.pid,
-          uptime: process.uptime(),
-          memoryUsage: process.memoryUsage()
+          timestamp: new Date().toISOString()
         });
         
-        // Force flush any remaining logs
         await this.flushLogs();
-        
       } catch (e) {
-        console.error('[Logger] Failed to log uncaught exception:', e.message);
+        console.error('[Logger] Failed to log uncaught exception');
       }
       
-      // Wait for logs to be sent
-      setTimeout(() => {
-        console.error('[Logger] Exiting due to uncaught exception');
-        process.exit(1);
-      }, 2000);
+      setTimeout(() => process.exit(1), 1000);
     });
     
-    // Unhandled promise rejections
-    process.on('unhandledRejection', async (reason, promise) => {
-      this.metrics.crashes++;
-      console.error('[Logger] Unhandled Promise Rejection detected');
+    // Rejets de promesses non gérés
+    process.on('unhandledRejection', async (reason) => {
+      console.error('[Logger] Unhandled Promise Rejection:', reason);
       
       try {
-        await this.logCritical('Unhandled Promise Rejection detected', {
+        await this.sendLog('critical', 'Unhandled Promise Rejection', {
           reason: reason?.toString() || 'Unknown reason',
-          promise: promise?.toString() || 'Unknown promise',
-          timestamp: new Date().toISOString(),
-          pid: process.pid,
-          uptime: process.uptime()
+          timestamp: new Date().toISOString()
         });
       } catch (e) {
-        console.error('[Logger] Failed to log unhandled rejection:', e.message);
-      }
-    });
-    
-    // Warning for potential memory leaks
-    process.on('warning', async (warning) => {
-      if (warning.name === 'MaxListenersExceededWarning' || 
-          warning.name === 'DeprecationWarning') {
-        try {
-          await this.logWarning(`Node.js Warning: ${warning.name}`, {
-            message: warning.message,
-            stack: warning.stack,
-            timestamp: new Date().toISOString()
-          });
-        } catch (e) {
-          console.error('[Logger] Failed to log warning:', e.message);
-        }
+        console.error('[Logger] Failed to log unhandled rejection');
       }
     });
   }
   
   /**
-   * Setup graceful shutdown handling
+   * Configuration de l'arrêt gracieux
    */
   setupGracefulShutdown() {
     const signals = ['SIGTERM', 'SIGINT', 'SIGUSR2'];
@@ -443,111 +400,30 @@ class Logger extends EventEmitter {
     signals.forEach(signal => {
       process.on(signal, async () => {
         if (this.isShuttingDown) {
-          console.log(`[Logger] Force exit on ${signal}`);
           process.exit(1);
         }
         
-        console.log(`[Logger] Received ${signal}, starting graceful shutdown...`);
-        await this.gracefulShutdown(signal);
+        console.log(`[Logger] Received ${signal}, shutting down gracefully...`);
+        await this.shutdown();
+        process.exit(0);
       });
-    });
-    
-    // Handle process exit
-    process.on('exit', (code) => {
-      console.log(`[Logger] Process exiting with code: ${code}`);
-    });
-    
-    // Handle beforeExit (last chance to do async operations)
-    process.on('beforeExit', async (code) => {
-      if (!this.isShuttingDown && code === 0) {
-        console.log('[Logger] Process ending normally, logging final state...');
-        try {
-          await this.logInfo('Application ending normally', {
-            exitCode: code,
-            uptime: process.uptime(),
-            metrics: this.getMetrics()
-          });
-        } catch (e) {
-          console.error('[Logger] Failed to log normal exit:', e.message);
-        }
-      }
     });
   }
   
   /**
-   * Graceful shutdown process
+   * Requête HTTP avec retry
    */
-  async gracefulShutdown(signal = 'UNKNOWN') {
-    if (this.shutdownPromise) {
-      return this.shutdownPromise;
-    }
-    
-    this.shutdownPromise = this._performShutdown(signal);
-    return this.shutdownPromise;
-  }
-  
-  async _performShutdown(signal) {
-    this.isShuttingDown = true;
-    this.metrics.gracefulShutdowns++;
-    
-    console.log(`[Logger] Starting graceful shutdown (signal: ${signal})...`);
-    
-    try {
-      // Log shutdown start
-      await this.logInfo(`Graceful shutdown initiated by ${signal}`, {
-        signal: signal,
-        uptime: process.uptime(),
-        finalMetrics: this.getMetrics(),
-        timestamp: new Date().toISOString()
-      });
-      
-      // Stop new operations
-      this.stopHeartbeat();
-      if (this.batchTimer) {
-        clearInterval(this.batchTimer);
-      }
-      
-      // Flush remaining logs
-      console.log('[Logger] Flushing remaining logs...');
-      await this.flushLogs();
-      
-      // Final metrics log
-      await this.logInfo('Shutdown completed successfully', {
-        totalLogs: this.metrics.logsSent,
-        successfulLogs: this.metrics.logsSuccess,
-        errors: this.metrics.logsError,
-        uptime: process.uptime()
-      });
-      
-      this.emit('shutdown', { signal, graceful: true });
-      console.log('[Logger] Graceful shutdown completed');
-      
-    } catch (error) {
-      console.error('[Logger] Error during graceful shutdown:', error.message);
-      this.emit('shutdown', { signal, graceful: false, error });
-    }
-    
-    // Force exit after timeout
-    setTimeout(() => {
-      console.log('[Logger] Shutdown timeout reached, forcing exit');
-      process.exit(0);
-    }, this.options.shutdownTimeout);
-  }
-  
-  /**
-   * HTTP request with retry
-   */
-  async makeRequestWithRetry(data, method = 'POST') {
+  async makeRequestWithRetry(data) {
     let lastError;
     
     for (let attempt = 1; attempt <= this.options.retryAttempts; attempt++) {
       try {
-        return await this.makeRequest(data.request, data, method);
+        return await this.makeRequest(data);
       } catch (error) {
         lastError = error;
         
         if (attempt < this.options.retryAttempts) {
-          const delay = this.options.retryDelay * Math.pow(2, attempt - 1); // Exponential backoff
+          const delay = this.options.retryDelay * attempt;
           console.warn(`[Logger] Request failed (attempt ${attempt}), retrying in ${delay}ms...`);
           await this.sleep(delay);
         }
@@ -558,68 +434,139 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Base HTTP request
+   * Faire une requête HTTP
    */
-  async makeRequest(endpoint, data, method = 'POST') {
-    const startTime = Date.now();
-    
-    try {
-      let response;
+  async makeRequest(data) {
+    return new Promise((resolve, reject) => {
+      const postData = JSON.stringify(data);
+      const parsedUrl = new URL(this.apiUrl);
+      const protocol = parsedUrl.protocol === 'https:' ? https : http;
       
-      if (method === 'GET') {
-        const params = new URLSearchParams(data);
-        response = await this.httpClient.get(`${this.apiUrl}?${params}`);
-      } else {
-        response = await this.httpClient.post(this.apiUrl, data);
-      }
+      const options = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+        path: parsedUrl.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData),
+          'User-Agent': 'Logger-Simple-NodeJS/6.1.0'
+        },
+        timeout: this.options.timeout
+      };
       
-      this.updateAverageResponseTime(Date.now() - startTime);
+      const req = protocol.request(options, (res) => {
+        let responseData = '';
+        
+        res.on('data', (chunk) => {
+          responseData += chunk;
+        });
+        
+        res.on('end', () => {
+          try {
+            const response = JSON.parse(responseData);
+            
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              if (response.success) {
+                resolve(response.data || response);
+              } else {
+                reject(new Error(response.error || 'API request failed'));
+              }
+            } else {
+              reject(new Error(`HTTP ${res.statusCode}: ${response.error || 'Request failed'}`));
+            }
+          } catch (error) {
+            reject(new Error(`Invalid JSON response: ${responseData}`));
+          }
+        });
+      });
       
-      if (response.data?.success) {
-        return response.data.data || response.data;
-      } else {
-        throw new Error(response.data?.error || 'API request failed');
-      }
+      req.on('error', (error) => {
+        reject(new Error(`Network error: ${error.message}`));
+      });
       
-    } catch (error) {
-      if (error.response) {
-        throw new Error(`HTTP ${error.response.status}: ${error.response.data?.error || error.message}`);
-      } else if (error.request) {
-        throw new Error('Network error: No response received');
-      } else {
-        throw error;
-      }
-    }
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
+      });
+      
+      req.write(postData);
+      req.end();
+    });
   }
   
   /**
-   * Utilities
+   * Utilitaire pour attendre
    */
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
   
-  updateAverageResponseTime(responseTime) {
-    if (this.metrics.averageResponseTime === 0) {
-      this.metrics.averageResponseTime = responseTime;
-    } else {
-      this.metrics.averageResponseTime = (this.metrics.averageResponseTime + responseTime) / 2;
+  /**
+   * Arrêt gracieux
+   */
+  async shutdown() {
+    if (this.isShuttingDown) return;
+    
+    this.isShuttingDown = true;
+    console.log('[Logger] Starting graceful shutdown...');
+    
+    try {
+      // Arrêter les timers
+      this.stopHeartbeat();
+      if (this.batchTimer) {
+        clearInterval(this.batchTimer);
+      }
+      
+      // Vider les logs en attente
+      await this.flushLogs();
+      
+      // Log final
+      await this.sendLog('info', 'Logger shutdown completed', {
+        totalLogs: this.metrics.logsSent,
+        successfulLogs: this.metrics.logsSuccess,
+        errors: this.metrics.logsError
+      });
+      
+      this.emit('shutdown', { graceful: true });
+      console.log('[Logger] Graceful shutdown completed');
+      
+    } catch (error) {
+      this.emit('shutdown', { graceful: false, error });
+      console.error('[Logger] Error during shutdown:', error.message);
     }
   }
   
   /**
-   * Manual shutdown
+   * Obtenir les logs depuis l'API
    */
-  async shutdown() {
-    return this.gracefulShutdown('MANUAL');
+  async getLogs(filters = {}) {
+    const data = {
+      action: 'logger',
+      request: 'get_logs',
+      app_id: this.app_id,
+      api_key: this.api_key,
+      ...filters
+    };
+    
+    return this.makeRequest(data);
   }
   
   /**
-   * Factory method for easy instance creation
+   * Obtenir les statistiques
    */
-  static create(app_id, api_key, apiUrl, options = {}) {
-    return new Logger({ app_id, api_key, apiUrl, options });
+  async getStats(days = 7) {
+    const data = {
+      action: 'logger',
+      request: 'stats',
+      app_id: this.app_id,
+      api_key: this.api_key,
+      days: days
+    };
+    
+    return this.makeRequest(data);
   }
 }
 
-module.exports = { Logger };
+// Export du module
+module.exports = Logger;
