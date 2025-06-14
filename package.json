@@ -1,6 +1,6 @@
 {
   "name": "node-logger-simple",
-  "version": "4.0.0",
+  "version": "6.0.0",
   "description": "A simple Node.Js logger module with configurable options.",
   "main": "App.js",
   "scripts": {
@@ -19,11 +19,11 @@
     "npm",
     "module",
     "error",
-    "info",
-    "file"
+    "info"
   ],
   "dependencies": {
-    "axios": "^1.7.9"
+    "axios": "^1.9.0",
+    "events": "^3.3.0"
   },
   "author": "Cut0x",
   "license": "ISC",
