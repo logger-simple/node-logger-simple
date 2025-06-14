@@ -1,9 +1,11 @@
 const axios = require('axios');
 const EventEmitter = require('events');
 
+const { version } = require('./package.json');
+
 /**
- * Logger Simple - Module Node.js amélioré
- * Version 2.0 avec plus de fonctionnalités et de robustesse
+ * Logger Simple - Enhanced Node.js Module
+ * Version 2.1 with improved API integration and crash detection
  */
 class Logger extends EventEmitter {
   constructor({ app_id, api_key, apiUrl, options = {} }) {
@@ -13,12 +15,12 @@ class Logger extends EventEmitter {
       throw new Error("app_id and api_key are required.");
     }
     
-    // Configuration principale
+    // Main configuration
     this.app_id = app_id;
     this.api_key = api_key;
-    this.apiUrl = apiUrl || "http://localhost/api.logger-simple/api.php";
+    this.apiUrl = "https://api.logger-simple.com/"; // Require : no edit !
     
-    // Options avancées
+    // Advanced options
     this.options = {
       autoHeartbeat: options.autoHeartbeat !== false,
       heartbeatInterval: options.heartbeatInterval || 300000, // 5 minutes
@@ -30,56 +32,75 @@ class Logger extends EventEmitter {
       maxLogLength: options.maxLogLength || 10000,
       batchSize: options.batchSize || 100,
       flushInterval: options.flushInterval || 5000,
+      shutdownTimeout: options.shutdownTimeout || 5000,
+      enableGracefulShutdown: options.enableGracefulShutdown !== false,
       ...options
     };
     
-    // État interne
+    // Internal state
     this.heartbeatIntervalId = null;
     this.isConnected = false;
     this.logQueue = [];
     this.batchTimer = null;
+    this.isShuttingDown = false;
+    this.shutdownPromise = null;
     this.metrics = {
       logsSent: 0,
       logsSuccess: 0,
       logsError: 0,
       lastHeartbeat: null,
       connectionErrors: 0,
-      averageResponseTime: 0
+      averageResponseTime: 0,
+      startTime: new Date(),
+      crashes: 0,
+      gracefulShutdowns: 0
     };
     
-    // Configuration d'axios
+    // HTTP client configuration
     this.httpClient = axios.create({
       timeout: this.options.timeout,
       headers: {
-        'User-Agent': 'Logger-Simple-NodeJS/2.0',
+        'User-Agent': `Logger-Simple-NodeJS/${version}`,
         'Content-Type': 'application/json'
       }
     });
     
-    // Initialisation
+    // Initialize
     this.init();
   }
   
   /**
-   * Initialisation du logger
+   * Logger initialization
    */
   async init() {
     try {
-      // Test de connexion initial
+      // Initial connection test
       await this.testConnection();
       
-      // Démarrer le heartbeat automatique
+      // Start automatic heartbeat
       if (this.options.autoHeartbeat) {
         this.startHeartbeat();
       }
       
-      // Configurer la gestion d'erreurs
+      // Setup error handling
       if (this.options.enableCrashLogging) {
         this.setupCrashLogging();
       }
       
-      // Démarrer le batch processing
+      // Setup graceful shutdown
+      if (this.options.enableGracefulShutdown) {
+        this.setupGracefulShutdown();
+      }
+      
+      // Start batch processing
       this.startBatchProcessing();
+      
+      // Log successful initialization
+      await this.logInfo(`Logger initialized successfully for app: ${this.app_id}`, {
+        version: `${version}`,
+        options: this.options,
+        startTime: this.metrics.startTime.toISOString()
+      });
       
       this.emit('ready');
       console.log(`[Logger] Initialized successfully for app: ${this.app_id}`);
@@ -91,7 +112,7 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Test de connexion à l'API
+   * Test API connection
    */
   async testConnection() {
     try {
@@ -109,9 +130,14 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Envoyer un log avec gestion des erreurs et retry
+   * Send log with error handling and retry
    */
   async sendLog(logLevel, message, context = null, options = {}) {
+    if (this.isShuttingDown && !options.allowDuringShutdown) {
+      console.warn('[Logger] Skipping log during shutdown:', message);
+      return null;
+    }
+    
     const startTime = Date.now();
     
     try {
@@ -128,7 +154,7 @@ class Logger extends EventEmitter {
         message = message.substring(0, this.options.maxLogLength) + '... [TRUNCATED]';
       }
       
-      // Préparer les données
+      // Prepare data according to API format
       const logData = {
         action: 'logger',
         request: 'new_log',
@@ -142,10 +168,10 @@ class Logger extends EventEmitter {
         logData.context = typeof context === 'string' ? context : JSON.stringify(context);
       }
       
-      // Envoyer avec retry
+      // Send with retry
       const result = await this.makeRequestWithRetry(logData);
       
-      // Métriques
+      // Update metrics
       this.metrics.logsSent++;
       this.metrics.logsSuccess++;
       this.updateAverageResponseTime(Date.now() - startTime);
@@ -167,7 +193,7 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Méthodes de logging simplifiées
+   * Simplified logging methods
    */
   async logSuccess(message, context = null) {
     return this.sendLog('success', message, context);
@@ -190,9 +216,14 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Logging en batch (pour les gros volumes)
+   * Batch logging (for high volume)
    */
   queueLog(logLevel, message, context = null) {
+    if (this.isShuttingDown) {
+      console.warn('[Logger] Skipping queued log during shutdown:', message);
+      return;
+    }
+    
     this.logQueue.push({ logLevel, message, context, timestamp: Date.now() });
     
     if (this.logQueue.length >= this.options.batchSize) {
@@ -207,7 +238,10 @@ class Logger extends EventEmitter {
     
     try {
       const promises = logsToSend.map(log => 
-        this.sendLog(log.logLevel, log.message, log.context, { throwOnError: false })
+        this.sendLog(log.logLevel, log.message, log.context, { 
+          throwOnError: false,
+          allowDuringShutdown: true 
+        })
       );
       
       await Promise.allSettled(promises);
@@ -220,7 +254,7 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Heartbeat amélioré
+   * Enhanced heartbeat
    */
   async sendHeartbeat() {
     try {
@@ -246,7 +280,7 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Démarrer le heartbeat automatique
+   * Start automatic heartbeat
    */
   startHeartbeat() {
     if (this.heartbeatIntervalId) {
@@ -254,6 +288,8 @@ class Logger extends EventEmitter {
     }
     
     this.heartbeatIntervalId = setInterval(async () => {
+      if (this.isShuttingDown) return;
+      
       try {
         await this.sendHeartbeat();
       } catch (error) {
@@ -265,7 +301,7 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Arrêter le heartbeat
+   * Stop heartbeat
    */
   stopHeartbeat() {
     if (this.heartbeatIntervalId) {
@@ -276,16 +312,18 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Démarrer le traitement en batch
+   * Start batch processing
    */
   startBatchProcessing() {
     this.batchTimer = setInterval(() => {
-      this.flushLogs();
+      if (!this.isShuttingDown) {
+        this.flushLogs();
+      }
     }, this.options.flushInterval);
   }
   
   /**
-   * Récupérer les logs
+   * Get logs
    */
   async getLogs(filters = {}) {
     const data = {
@@ -300,7 +338,7 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Récupérer les statistiques
+   * Get statistics
    */
   async getStats(days = 7) {
     const data = {
@@ -315,7 +353,7 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Obtenir les métriques locales
+   * Get local metrics
    */
   getMetrics() {
     return {
@@ -323,59 +361,181 @@ class Logger extends EventEmitter {
       isConnected: this.isConnected,
       queueSize: this.logQueue.length,
       uptime: process.uptime(),
-      memoryUsage: process.memoryUsage()
+      memoryUsage: process.memoryUsage(),
+      isShuttingDown: this.isShuttingDown
     };
   }
   
   /**
-   * Configuration de la gestion d'erreurs
+   * Enhanced crash detection and logging
    */
   setupCrashLogging() {
-    // Exceptions non capturées
+    // Uncaught exceptions
     process.on('uncaughtException', async (error) => {
+      this.metrics.crashes++;
+      console.error('[Logger] Uncaught Exception detected:', error.message);
+      
       try {
-        await this.logCritical('Uncaught Exception', {
+        await this.logCritical('Uncaught Exception detected - Application will exit', {
           error: error.message,
           stack: error.stack,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          pid: process.pid,
+          uptime: process.uptime(),
+          memoryUsage: process.memoryUsage()
         });
+        
+        // Force flush any remaining logs
+        await this.flushLogs();
+        
       } catch (e) {
         console.error('[Logger] Failed to log uncaught exception:', e.message);
       }
       
-      // Attendre un peu pour que le log soit envoyé
-      setTimeout(() => process.exit(1), 1000);
+      // Wait for logs to be sent
+      setTimeout(() => {
+        console.error('[Logger] Exiting due to uncaught exception');
+        process.exit(1);
+      }, 2000);
     });
     
-    // Rejets de promesses non gérés
+    // Unhandled promise rejections
     process.on('unhandledRejection', async (reason, promise) => {
+      this.metrics.crashes++;
+      console.error('[Logger] Unhandled Promise Rejection detected');
+      
       try {
-        await this.logCritical('Unhandled Promise Rejection', {
+        await this.logCritical('Unhandled Promise Rejection detected', {
           reason: reason?.toString() || 'Unknown reason',
           promise: promise?.toString() || 'Unknown promise',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          pid: process.pid,
+          uptime: process.uptime()
         });
       } catch (e) {
         console.error('[Logger] Failed to log unhandled rejection:', e.message);
       }
     });
     
-    // Signaux de terminaison
-    ['SIGTERM', 'SIGINT', 'SIGUSR2'].forEach(signal => {
-      process.on(signal, async () => {
+    // Warning for potential memory leaks
+    process.on('warning', async (warning) => {
+      if (warning.name === 'MaxListenersExceededWarning' || 
+          warning.name === 'DeprecationWarning') {
         try {
-          await this.logInfo(`Process terminating with signal: ${signal}`);
-          await this.shutdown();
+          await this.logWarning(`Node.js Warning: ${warning.name}`, {
+            message: warning.message,
+            stack: warning.stack,
+            timestamp: new Date().toISOString()
+          });
         } catch (e) {
-          console.error('[Logger] Error during shutdown:', e.message);
+          console.error('[Logger] Failed to log warning:', e.message);
         }
-        process.exit(0);
-      });
+      }
     });
   }
   
   /**
-   * Requête HTTP avec retry
+   * Setup graceful shutdown handling
+   */
+  setupGracefulShutdown() {
+    const signals = ['SIGTERM', 'SIGINT', 'SIGUSR2'];
+    
+    signals.forEach(signal => {
+      process.on(signal, async () => {
+        if (this.isShuttingDown) {
+          console.log(`[Logger] Force exit on ${signal}`);
+          process.exit(1);
+        }
+        
+        console.log(`[Logger] Received ${signal}, starting graceful shutdown...`);
+        await this.gracefulShutdown(signal);
+      });
+    });
+    
+    // Handle process exit
+    process.on('exit', (code) => {
+      console.log(`[Logger] Process exiting with code: ${code}`);
+    });
+    
+    // Handle beforeExit (last chance to do async operations)
+    process.on('beforeExit', async (code) => {
+      if (!this.isShuttingDown && code === 0) {
+        console.log('[Logger] Process ending normally, logging final state...');
+        try {
+          await this.logInfo('Application ending normally', {
+            exitCode: code,
+            uptime: process.uptime(),
+            metrics: this.getMetrics()
+          });
+        } catch (e) {
+          console.error('[Logger] Failed to log normal exit:', e.message);
+        }
+      }
+    });
+  }
+  
+  /**
+   * Graceful shutdown process
+   */
+  async gracefulShutdown(signal = 'UNKNOWN') {
+    if (this.shutdownPromise) {
+      return this.shutdownPromise;
+    }
+    
+    this.shutdownPromise = this._performShutdown(signal);
+    return this.shutdownPromise;
+  }
+  
+  async _performShutdown(signal) {
+    this.isShuttingDown = true;
+    this.metrics.gracefulShutdowns++;
+    
+    console.log(`[Logger] Starting graceful shutdown (signal: ${signal})...`);
+    
+    try {
+      // Log shutdown start
+      await this.logInfo(`Graceful shutdown initiated by ${signal}`, {
+        signal: signal,
+        uptime: process.uptime(),
+        finalMetrics: this.getMetrics(),
+        timestamp: new Date().toISOString()
+      });
+      
+      // Stop new operations
+      this.stopHeartbeat();
+      if (this.batchTimer) {
+        clearInterval(this.batchTimer);
+      }
+      
+      // Flush remaining logs
+      console.log('[Logger] Flushing remaining logs...');
+      await this.flushLogs();
+      
+      // Final metrics log
+      await this.logInfo('Shutdown completed successfully', {
+        totalLogs: this.metrics.logsSent,
+        successfulLogs: this.metrics.logsSuccess,
+        errors: this.metrics.logsError,
+        uptime: process.uptime()
+      });
+      
+      this.emit('shutdown', { signal, graceful: true });
+      console.log('[Logger] Graceful shutdown completed');
+      
+    } catch (error) {
+      console.error('[Logger] Error during graceful shutdown:', error.message);
+      this.emit('shutdown', { signal, graceful: false, error });
+    }
+    
+    // Force exit after timeout
+    setTimeout(() => {
+      console.log('[Logger] Shutdown timeout reached, forcing exit');
+      process.exit(0);
+    }, this.options.shutdownTimeout);
+  }
+  
+  /**
+   * HTTP request with retry
    */
   async makeRequestWithRetry(data, method = 'POST') {
     let lastError;
@@ -398,7 +558,7 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Requête HTTP de base
+   * Base HTTP request
    */
   async makeRequest(endpoint, data, method = 'POST') {
     const startTime = Date.now();
@@ -433,7 +593,7 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Utilitaires
+   * Utilities
    */
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -448,26 +608,14 @@ class Logger extends EventEmitter {
   }
   
   /**
-   * Arrêt propre
+   * Manual shutdown
    */
   async shutdown() {
-    console.log('[Logger] Shutting down...');
-    
-    // Arrêter les timers
-    this.stopHeartbeat();
-    if (this.batchTimer) {
-      clearInterval(this.batchTimer);
-    }
-    
-    // Vider la queue
-    await this.flushLogs();
-    
-    this.emit('shutdown');
-    console.log('[Logger] Shutdown complete');
+    return this.gracefulShutdown('MANUAL');
   }
   
   /**
-   * Factory method pour créer une instance facilement
+   * Factory method for easy instance creation
    */
   static create(app_id, api_key, apiUrl, options = {}) {
     return new Logger({ app_id, api_key, apiUrl, options });
