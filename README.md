@@ -9,7 +9,6 @@
   [![Downloads](https://img.shields.io/npm/dm/node-logger-simple.svg)](https://www.npmjs.com/package/node-logger-simple)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Node.js](https://img.shields.io/badge/Node.js-16%2B-green.svg)](https://nodejs.org)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 </div>
 
 ---
