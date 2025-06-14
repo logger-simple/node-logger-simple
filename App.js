@@ -1,11 +1,10 @@
 const axios = require('axios');
 const EventEmitter = require('events');
 
-const { version } = require('./package.json');
-
 /**
  * Logger Simple - Enhanced Node.js Module
  * Version 2.1 with improved API integration and crash detection
+ * CommonJS Module (require/module.exports)
  */
 class Logger extends EventEmitter {
   constructor({ app_id, api_key, apiUrl, options = {} }) {
@@ -18,7 +17,7 @@ class Logger extends EventEmitter {
     // Main configuration
     this.app_id = app_id;
     this.api_key = api_key;
-    this.apiUrl = "https://api.logger-simple.com/"; // Require : no edit !
+    this.apiUrl = "https://api.logger-simple.com/";
     
     // Advanced options
     this.options = {
@@ -60,7 +59,7 @@ class Logger extends EventEmitter {
     this.httpClient = axios.create({
       timeout: this.options.timeout,
       headers: {
-        'User-Agent': `Logger-Simple-NodeJS/${version}`,
+        'User-Agent': 'Logger-Simple-NodeJS/2.1',
         'Content-Type': 'application/json'
       }
     });
@@ -97,7 +96,7 @@ class Logger extends EventEmitter {
       
       // Log successful initialization
       await this.logInfo(`Logger initialized successfully for app: ${this.app_id}`, {
-        version: `${version}`,
+        version: '2.1',
         options: this.options,
         startTime: this.metrics.startTime.toISOString()
       });
