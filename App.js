@@ -569,4 +569,4 @@ class Logger extends EventEmitter {
 }
 
 // Export du module
-module.exports = Logger;
+module.exports = { Logger };
