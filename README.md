@@ -1,4 +1,4 @@
-# 🚀 Logger Simple - Enterprise Node.js Logging
+# 🚀 Logger Simple - Node.js Logging
 
 <div align="center">
   <img src="https://logger-simple.com/assets/imgs/logo.png" alt="Logger Simple" width="120" height="120">
