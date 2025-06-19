@@ -6,6 +6,7 @@ const EventEmitter = require('events');
 /**
  * Logger Simple - Module Node.js Simplifié
  * Version 6.1.0 - Approche simplifiée sans dépendances externes
+ * Contrôle debug optimisé
  */
 class Logger extends EventEmitter {
   constructor(config) {
@@ -55,15 +56,23 @@ class Logger extends EventEmitter {
     this.init();
   }
 
-  // Méthodes internes pour le debug
+  // Méthodes internes pour le debug - Aucun log si debug = false
   _log(...args) {
-    if (this.debug) console.log(...args);
+    if (this.debug) {
+      console.log(...args);
+    }
   }
+
   _warn(...args) {
-    if (this.debug) console.warn(...args);
+    if (this.debug) {
+      console.warn(...args);
+    }
   }
+
   _error(...args) {
-    if (this.debug) console.error(...args);
+    if (this.debug) {
+      console.error(...args);
+    }
   }
 
   /**
@@ -579,6 +588,21 @@ class Logger extends EventEmitter {
     };
 
     return this.makeRequest(data);
+  }
+
+  /**
+   * Méthode pour activer/désactiver le debug en cours d'exécution
+   */
+  setDebug(enabled) {
+    this.debug = !!enabled;
+    this._log(`[Logger] Debug mode ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Méthode pour vérifier l'état du debug
+   */
+  isDebugEnabled() {
+    return this.debug;
   }
 }
 
