@@ -33,10 +33,10 @@ npm install logger-simple
 ### 1. Basic Setup
 
 ```javascript
-const LoggerSimple = require('logger-simple');
+const { Logger } = require('logger-simple');
 
 // Initialize with your app credentials
-const logger = new LoggerSimple({
+const logger = new Logger({
     appId: 'your_app_id',
     apiKey: 'your_api_key',
     exitOnCritical: true,  // Auto-exit on critical errors (default: true)
@@ -100,7 +100,7 @@ const result = await logger.timeOperation(async () => {
 ### Constructor Options
 
 ```javascript
-const logger = new LoggerSimple({
+const logger = new Logger({
     appId: 'your_app_id',                         // Your application ID
     apiKey: 'your_api_key',                       // Your API key
     timeout: 10000,                               // Request timeout (ms)
@@ -142,14 +142,14 @@ Logger Simple includes built-in debug logging to help you understand what's happ
 
 ```javascript
 // Initialize with debug enabled (default)
-const logger = new LoggerSimple({
+const logger = new Logger({
     appId: 'your_app_id',
     apiKey: 'your_api_key',
     debug: true  // Show internal debug messages
 });
 
 // Initialize with debug disabled (silent mode)
-const logger = new LoggerSimple({
+const logger = new Logger({
     appId: 'your_app_id',
     apiKey: 'your_api_key',
     debug: false  // No internal debug messages
@@ -177,7 +177,7 @@ When debug is **disabled**, Logger Simple operates silently without console outp
 
 ```javascript
 // Development mode - show debug messages
-const logger = new LoggerSimple({
+const logger = new Logger({
     appId: process.env.LOGGER_APP_ID,
     apiKey: process.env.LOGGER_API_KEY,
     debug: process.env.NODE_ENV !== 'production',  // Debug in dev only
@@ -185,7 +185,7 @@ const logger = new LoggerSimple({
 });
 
 // Or set based on environment variable
-const logger = new LoggerSimple({
+const logger = new Logger({
     appId: process.env.LOGGER_APP_ID,
     apiKey: process.env.LOGGER_API_KEY,
     debug: process.env.LOGGER_DEBUG === 'true'  // Set via env var
@@ -401,9 +401,9 @@ await logger.replyPost('api_key_here', {
 
 ```javascript
 const express = require('express');
-const LoggerSimple = require('logger-simple');
+const { Logger } = require('logger-simple');
 
-const logger = new LoggerSimple({
+const logger = new Logger({
     appId: process.env.LOGGER_APP_ID,
     apiKey: process.env.LOGGER_API_KEY,
     exitOnCritical: true  // Exit on critical errors
@@ -471,7 +471,7 @@ process.on('SIGINT', () => logger.gracefulShutdown('SIGINT received'));
 
 ```javascript
 const mongoose = require('mongoose');
-const logger = new LoggerSimple({ /* config */ });
+const logger = new Logger({ /* config */ });
 
 const dbLogger = logger.context('MongoDB');
 let connectionAttempts = 0;
@@ -509,7 +509,7 @@ mongoose.connection.on('disconnected', async () => {
 ### Background Job Processor with Performance Monitoring
 
 ```javascript
-const logger = new LoggerSimple({ /* config */ });
+const logger = new Logger({ /* config */ });
 const jobLogger = logger.context('JobProcessor');
 
 async function processJob(jobData) {
@@ -579,7 +579,7 @@ logger.info('User login successful', {
 
 ### Production Configuration
 ```javascript
-const logger = new LoggerSimple({
+const logger = new Logger({
     appId: process.env.LOGGER_APP_ID,
     apiKey: process.env.LOGGER_API_KEY,
     exitOnCritical: process.env.NODE_ENV === 'production', // Exit in production
@@ -624,7 +624,7 @@ NODE_ENV=production
 
 To disable auto-exit:
 ```javascript
-const logger = new LoggerSimple({
+const logger = new Logger({
     exitOnCritical: false,  // Don't exit on critical logs
     autoExit: false         // Don't exit on auto-caught errors
 });

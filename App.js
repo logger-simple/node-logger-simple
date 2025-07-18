@@ -9,10 +9,10 @@ const http = require('http');
 const querystring = require('querystring');
 const { URL } = require('url');
 
-class LoggerSimple {
+class Logger {
     constructor(options = {}) {
         this.config = {
-            baseUrl: 'https://logger-simple.com/api.php', // Fixed API URL
+            baseUrl: 'https://api.logger-simple.com/',
             appId: options.appId || null,
             apiKey: options.apiKey || null,
             timeout: options.timeout || 10000,
