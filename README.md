@@ -25,7 +25,7 @@
 ## 📦 Installation
 
 ```bash
-npm install node-logger-simple
+npm install logger-simple
 ```
 
 ## 🔧 Quick Start
@@ -33,7 +33,7 @@ npm install node-logger-simple
 ### 1. Basic Setup
 
 ```javascript
-const { Logger } = require('node-logger-simple');
+const { Logger } = require('logger-simple');
 
 // Initialize with your app credentials
 const logger = new Logger({
@@ -58,11 +58,11 @@ logger.setDebug(false);  // Silent mode
 
 ```javascript
 // Different log levels
-await logger.success('User registration completed successfully');
-await logger.info('Processing user request');
-await logger.warn('Database connection pool getting full');
-await logger.error('Failed to save user data');
-await logger.critical('Database connection lost'); // 🚨 Triggers email + EXIT!
+await logger.logSuccess('User registration completed successfully');
+await logger.logInfo('Processing user request');
+await logger.logWarn('Database connection pool getting full');
+await logger.logerror('Failed to save user data');
+await logger.logCritical('Database connection lost'); // 🚨 Triggers email + EXIT!
 
 // With additional context
 await logger.error('Payment processing failed', {
@@ -80,8 +80,8 @@ await logger.error('Payment processing failed', {
 const dbLogger = logger.context('DatabaseManager');
 const apiLogger = logger.context('APIController');
 
-await dbLogger.info('Connected to database');
-await apiLogger.warn('Rate limit approaching', { requests: 95, limit: 100 });
+await dbLogger.logInfo('Connected to database');
+await apiLogger.logWarn('Rate limit approaching', { requests: 95, limit: 100 });
 
 // Enable automatic error catching (will EXIT on uncaught errors)
 logger.enableAutoCatch(true, true); // enabled=true, exitOnError=true
@@ -126,7 +126,7 @@ await logger.log('critical', 'System failure', { error: 'details' }, null, false
 ⚠️ **WARNING**: Critical logs will **EXIT your application** by default!
 
 ```javascript
-await logger.critical('System out of memory', {
+await logger.logCritical('System out of memory', {
     availableMemory: '50MB',
     requiredMemory: '500MB',
     action: 'killing_process'
@@ -401,7 +401,7 @@ await logger.replyPost('api_key_here', {
 
 ```javascript
 const express = require('express');
-const { Logger } = require('node-logger-simple');
+const { Logger } = require('logger-simple');
 
 const logger = new Logger({
     appId: process.env.LOGGER_APP_ID,
@@ -514,13 +514,13 @@ const jobLogger = logger.context('JobProcessor');
 
 async function processJob(jobData) {
     return await jobLogger.timeOperation(async () => {
-        await jobLogger.info('Job started', { jobId: jobData.id });
+        await jobLogger.logInfo('Job started', { jobId: jobData.id });
         
         try {
             // Simulate heavy work
             const result = await doHeavyWork(jobData);
             
-            await jobLogger.success('Job completed successfully', {
+            await jobLogger.logSuccess('Job completed successfully', {
                 jobId: jobData.id,
                 recordsProcessed: result.count
             });
@@ -529,14 +529,14 @@ async function processJob(jobData) {
         } catch (error) {
             if (error.critical) {
                 // Critical job failure, exit application
-                await jobLogger.critical('Critical job failure - system unstable', {
+                await jobLogger.logCritical('Critical job failure - system unstable', {
                     jobId: jobData.id,
                     error: error.message,
                     stack: error.stack
                 });
                 // Process will exit
             } else {
-                await jobLogger.error('Job failed', {
+                await jobLogger.logError('Job failed', {
                     jobId: jobData.id,
                     error: error.message
                 });
@@ -567,10 +567,10 @@ NODE_ENV=production
 ### Sensitive Data Protection
 ```javascript
 // ❌ Don't log sensitive data
-logger.info('User login', { password: userPassword, creditCard: '4111...' });
+logger.logInff('User login', { password: userPassword, creditCard: '4111...' });
 
 // ✅ Log safely
-logger.info('User login successful', { 
+logger.logInfo('User login successful', { 
     userId: user.id, 
     email: user.email.replace(/(.{2}).*(@.*)/, '$1***$2'),
     loginMethod: 'oauth'
@@ -630,7 +630,7 @@ const logger = new Logger({
 });
 
 // Or override per call
-await logger.critical('Error but don\'t exit', {}, null, false);
+await logger.logCritical('Error but don\'t exit', {}, null, false);
 ```
 
 ## 🤝 Contributing
@@ -647,9 +647,9 @@ This project is licensed under the MIT License.
 
 ## 🆘 Support
 
-- **Documentation**: [panel.logger-simple.com/docs](https://panel.logger-simple.com/docs)
-- **Help Center**: [panel.logger-simple.com/help](https://panel.logger-simple.com/help)
-- **Discord Community**: [https://discord.gg/](https://discord.gg/)
+- **Documentation**: [https://panel.logger-simple.com/docs](https://panel.logger-simple.com/docs)
+- **Help Center**: [https://panel.logger-simple.com/help](https://panel.logger-simple.com/help)
+- **Discord Community**: [https://discord.gg/26HvypuvxR](https://discord.gg/26HvypuvxR)
 - **Email Support**: loggersimple@gmail.com
 
 ---
