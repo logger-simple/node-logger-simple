@@ -514,13 +514,13 @@ const jobLogger = logger.context('JobProcessor');
 
 async function processJob(jobData) {
     return await jobLogger.timeOperation(async () => {
-        await jobLogger.info('Job started', { jobId: jobData.id });
+        await jobLogger.logInfo('Job started', { jobId: jobData.id });
         
         try {
             // Simulate heavy work
             const result = await doHeavyWork(jobData);
             
-            await jobLogger.success('Job completed successfully', {
+            await jobLogger.logSuccess('Job completed successfully', {
                 jobId: jobData.id,
                 recordsProcessed: result.count
             });
@@ -529,14 +529,14 @@ async function processJob(jobData) {
         } catch (error) {
             if (error.critical) {
                 // Critical job failure, exit application
-                await jobLogger.critical('Critical job failure - system unstable', {
+                await jobLogger.logCritical('Critical job failure - system unstable', {
                     jobId: jobData.id,
                     error: error.message,
                     stack: error.stack
                 });
                 // Process will exit
             } else {
-                await jobLogger.error('Job failed', {
+                await jobLogger.logError('Job failed', {
                     jobId: jobData.id,
                     error: error.message
                 });
@@ -567,10 +567,10 @@ NODE_ENV=production
 ### Sensitive Data Protection
 ```javascript
 // ❌ Don't log sensitive data
-logger.info('User login', { password: userPassword, creditCard: '4111...' });
+logger.logInff('User login', { password: userPassword, creditCard: '4111...' });
 
 // ✅ Log safely
-logger.info('User login successful', { 
+logger.logInfo('User login successful', { 
     userId: user.id, 
     email: user.email.replace(/(.{2}).*(@.*)/, '$1***$2'),
     loginMethod: 'oauth'
@@ -630,7 +630,7 @@ const logger = new Logger({
 });
 
 // Or override per call
-await logger.critical('Error but don\'t exit', {}, null, false);
+await logger.logCritical('Error but don\'t exit', {}, null, false);
 ```
 
 ## 🤝 Contributing
@@ -647,9 +647,9 @@ This project is licensed under the MIT License.
 
 ## 🆘 Support
 
-- **Documentation**: [https://docs.logger-simple.com](https://docs.logger-simple.com)
-- **Help Center**: [https://help.logger-simple.com](https://help.logger-simple.com)
-- **Discord Community**: [https://discord.gg/logger-simple](https://discord.gg/logger-simple)
+- **Documentation**: [https://panel.logger-simple.com/docs](https://panel.logger-simple.com/docs)
+- **Help Center**: [https://panel.logger-simple.com/help](https://panel.logger-simple.com/help)
+- **Discord Community**: [https://discord.gg/26HvypuvxR](https://discord.gg/26HvypuvxR)
 - **Email Support**: loggersimple@gmail.com
 
 ---
