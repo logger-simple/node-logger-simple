@@ -58,11 +58,11 @@ logger.setDebug(false);  // Silent mode
 
 ```javascript
 // Different log levels
-await logger.success('User registration completed successfully');
-await logger.info('Processing user request');
-await logger.warn('Database connection pool getting full');
-await logger.error('Failed to save user data');
-await logger.critical('Database connection lost'); // 🚨 Triggers email + EXIT!
+await logger.logSuccess('User registration completed successfully');
+await logger.logInfo('Processing user request');
+await logger.logWarn('Database connection pool getting full');
+await logger.logerror('Failed to save user data');
+await logger.logCritical('Database connection lost'); // 🚨 Triggers email + EXIT!
 
 // With additional context
 await logger.error('Payment processing failed', {
@@ -80,8 +80,8 @@ await logger.error('Payment processing failed', {
 const dbLogger = logger.context('DatabaseManager');
 const apiLogger = logger.context('APIController');
 
-await dbLogger.info('Connected to database');
-await apiLogger.warn('Rate limit approaching', { requests: 95, limit: 100 });
+await dbLogger.logInfo('Connected to database');
+await apiLogger.logWarn('Rate limit approaching', { requests: 95, limit: 100 });
 
 // Enable automatic error catching (will EXIT on uncaught errors)
 logger.enableAutoCatch(true, true); // enabled=true, exitOnError=true
@@ -126,7 +126,7 @@ await logger.log('critical', 'System failure', { error: 'details' }, null, false
 ⚠️ **WARNING**: Critical logs will **EXIT your application** by default!
 
 ```javascript
-await logger.critical('System out of memory', {
+await logger.logCritical('System out of memory', {
     availableMemory: '50MB',
     requiredMemory: '500MB',
     action: 'killing_process'
