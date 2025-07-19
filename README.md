@@ -25,7 +25,7 @@
 ## 📦 Installation
 
 ```bash
-npm install logger-simple
+npm install node-logger-simple
 ```
 
 ## 🔧 Quick Start
@@ -33,7 +33,7 @@ npm install logger-simple
 ### 1. Basic Setup
 
 ```javascript
-const { Logger } = require('logger-simple');
+const { Logger } = require('node-logger-simple');
 
 // Initialize with your app credentials
 const logger = new Logger({
@@ -401,7 +401,7 @@ await logger.replyPost('api_key_here', {
 
 ```javascript
 const express = require('express');
-const { Logger } = require('logger-simple');
+const { Logger } = require('node-logger-simple');
 
 const logger = new Logger({
     appId: process.env.LOGGER_APP_ID,
@@ -647,9 +647,9 @@ This project is licensed under the MIT License.
 
 ## 🆘 Support
 
-- **Documentation**: [https://docs.logger-simple.com](https://docs.logger-simple.com)
-- **Help Center**: [https://help.logger-simple.com](https://help.logger-simple.com)
-- **Discord Community**: [https://discord.gg/logger-simple](https://discord.gg/logger-simple)
+- **Documentation**: [panel.logger-simple.com/docs](https://panel.logger-simple.com/docs)
+- **Help Center**: [panel.logger-simple.com/help](https://panel.logger-simple.com/help)
+- **Discord Community**: [https://discord.gg/](https://discord.gg/)
 - **Email Support**: loggersimple@gmail.com
 
 ---
