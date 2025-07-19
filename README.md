@@ -25,7 +25,7 @@
 ## 📦 Installation
 
 ```bash
-npm install logger-simple
+npm install node-logger-simple
 ```
 
 ## 🔧 Quick Start
@@ -33,7 +33,7 @@ npm install logger-simple
 ### 1. Basic Setup
 
 ```javascript
-const { Logger } = require('logger-simple');
+const { Logger } = require('node-logger-simple');
 
 // Initialize with your app credentials
 const logger = new Logger({
@@ -401,7 +401,7 @@ await logger.replyPost('api_key_here', {
 
 ```javascript
 const express = require('express');
-const { Logger } = require('logger-simple');
+const { Logger } = require('node-logger-simple');
 
 const logger = new Logger({
     appId: process.env.LOGGER_APP_ID,
@@ -567,7 +567,7 @@ NODE_ENV=production
 ### Sensitive Data Protection
 ```javascript
 // ❌ Don't log sensitive data
-logger.logInff('User login', { password: userPassword, creditCard: '4111...' });
+logger.logInfo('User login', { password: userPassword, creditCard: '4111...' });
 
 // ✅ Log safely
 logger.logInfo('User login successful', { 
