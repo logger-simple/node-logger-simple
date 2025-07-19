@@ -686,44 +686,12 @@ Visit [logger-simple.com](https://logger-simple.com) to access:
 | **📋 Reports** | Generate PDF reports for stakeholders |
 | **👥 Team Access** | Multi-user access with role-based permissions |
 
-### 📱 **Mobile Monitoring**
-
-Download the Logger Simple mobile app:
-- **iOS**: [App Store Link](https://apps.apple.com/logger-simple)
-- **Android**: [Google Play Link](https://play.google.com/logger-simple)
-
 Features:
 - Push notifications for critical logs
 - Real-time log streaming
 - Quick search and filtering
 - Offline log caching
 - Dark mode support
-
-### 🚨 **Alert Configuration**
-
-```javascript
-// Set up alerts in your dashboard or via API
-const alertRules = [
-  {
-    name: "Critical Errors",
-    condition: "log_level = 'critical'",
-    action: "email + sms",
-    throttle: "5 minutes"
-  },
-  {
-    name: "High Error Rate", 
-    condition: "error_count > 10 in 5 minutes",
-    action: "slack",
-    channel: "#alerts"
-  },
-  {
-    name: "Application Offline",
-    condition: "no_heartbeat_for > 10 minutes", 
-    action: "pagerduty",
-    escalation: "on-call-engineer"
-  }
-];
-```
 
 ---
 
@@ -1208,7 +1176,7 @@ When reporting bugs, please include:
 
 ### 💬 **Join Our Community**
 
-[![Discord](https://img.shields.io/discord/123456789?label=Discord&logo=discord&logoColor=white)](https://discord.gg/)
+[![Discord](https://img.shields.io/discord/123456789?label=Discord&logo=discord&logoColor=white)](https://discord.gg/26HvypuvxR)
 [![Twitter](https://img.shields.io/twitter/follow/loggersimple?style=social)](https://twitter.com/logger-simple)
 [![GitHub](https://img.shields.io/github/stars/logger-simple/node-logger-simple?style=social)](https://github.com/logger-simple/node-logger-simple)
 
