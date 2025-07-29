@@ -1,26 +1,29 @@
-# Logger Simple - Node.js Client Library
+# Node Logger Simple
 
-[![npm version](https://badge.fury.io/js/logger-simple.svg)](https://badge.fury.io/js/logger-simple)
+[![npm version](https://badge.fury.io/js/node-logger-simple.svg)](https://badge.fury.io/js/node-logger-simple)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D%2012.0.0-brightgreen)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/node/v/node-logger-simple.svg)](https://nodejs.org)
 
-**Logger Simple** is a powerful, production-ready Node.js client library for the Logger Simple platform - a next-generation application monitoring service with real-time logging, AI-powered insights, and automatic error notifications.
+**Official Node.js client for Logger Simple** - A complete logging solution with error tracking, performance monitoring, and real-time analytics.
 
 ## 🚀 Features
 
-- **5 Log Levels**: `success`, `info`, `warn`, `error`, `critical`
-- **Automatic Email Alerts**: Critical errors trigger instant email notifications
-- **Auto-Exit on Critical**: Automatically terminates application on critical errors
-- **Real-time Monitoring**: Stream logs with sub-millisecond latency
-- **AI-Powered Analytics**: Intelligent error detection and insights
-- **Easy Integration**: 30-second setup with any Node.js application
-- **Retry Logic**: Built-in retry mechanism with exponential backoff
-- **Context-Aware Logging**: Module-specific loggers for better organization
-- **Auto Error Catching**: Automatic capture of uncaught exceptions (with exit)
-- **Performance Monitoring**: Built-in operation timing and memory tracking
-- **Batch Logging**: Efficient batch processing for high-volume applications
-- **Help Center Integration**: Access to error tips and troubleshooting guides
-- **Graceful Shutdown**: Proper logging during application shutdown
+- **Easy Integration**: Get up and running in minutes with minimal configuration
+- **Real-time Logging**: Send logs directly to Logger Simple dashboard
+- **Error Tracking**: Automatic error capture with stack traces and context
+- **Performance Monitoring**: Built-in operation timing and performance metrics
+- **Rate Limiting**: Client-side rate limiting to prevent API spam
+- **Auto-Shutdown**: Configurable automatic shutdown on critical errors
+- **Context-Aware Logging**: Structured logging with contextual information
+- **TypeScript Support**: Full TypeScript definitions included
+- **Health Monitoring**: Comprehensive health checks and diagnostics
+- **Category Validation**: Ensures application category matches Node.js
+
+## 📋 Requirements
+
+- **Node.js**: 14.0.0 or higher
+- **Application Category**: Must be set to "nodejs" in Logger Simple dashboard
+- **Valid Credentials**: Application ID and API Key from Logger Simple
 
 ## 📦 Installation
 
@@ -28,634 +31,451 @@
 npm install node-logger-simple
 ```
 
-## 🔧 Quick Start
+## 🏁 Quick Start
 
-### 1. Basic Setup
+### 1. Create Your Application
 
-```javascript
-const { Logger } = require('node-logger-simple');
+First, create a Node.js application in the [Logger Simple Dashboard](https://logger-simple.com/dashboard/apps/create/):
 
-// Initialize with your app credentials
-const logger = new Logger({
-    appId: 'your_app_id',
-    apiKey: 'your_api_key',
-    exitOnCritical: true,  // Auto-exit on critical errors (default: true)
-    autoExit: true,        // Auto-exit on uncaught errors (default: true)
-    debug: true            // Show debug messages (default: true, set false for silent mode)
-});
+1. Go to Dashboard → Applications → Create New Application
+2. Set **Programming Language** to "Node.js"
+3. Configure your application settings
+4. Copy your **App ID** and **API Key**
 
-// Initialize your app with startup logging
-await logger.initialize('MyApp', '1.0.0', {
-    environment: 'production',
-    deployment: 'aws-us-east-1'
-});
-
-// Disable debug messages at runtime if needed
-logger.setDebug(false);  // Silent mode
-```
-
-### 2. Basic Logging
+### 2. Basic Usage
 
 ```javascript
-// Different log levels
-await logger.logSuccess('User registration completed successfully');
-await logger.logInfo('Processing user request');
-await logger.logWarn('Database connection pool getting full');
-await logger.logerror('Failed to save user data');
-await logger.logCritical('Database connection lost'); // 🚨 Triggers email + EXIT!
+const createLogger = require('node-logger-simple');
 
-// With additional context
-await logger.error('Payment processing failed', {
-    userId: 12345,
-    amount: 99.99,
-    paymentMethod: 'credit_card',
-    errorCode: 'CARD_DECLINED'
+// Initialize logger
+const logger = createLogger({
+  appId: 'your-app-id',
+  apiKey: 'your-api-key',
+  debug: true
+});
+
+// Basic logging
+await logger.info('Application started successfully');
+await logger.warn('This is a warning message');
+await logger.error('Something went wrong', { 
+  userId: 12345, 
+  action: 'user_login' 
+});
+
+// Critical errors (will exit app by default)
+await logger.critical('Database connection failed', {
+  error: 'Connection timeout',
+  database: 'primary'
 });
 ```
 
-### 3. Advanced Usage with Auto-Exit Protection
+### 3. Advanced Usage
 
 ```javascript
-// Context-aware logging for specific modules
-const dbLogger = logger.context('DatabaseManager');
-const apiLogger = logger.context('APIController');
+const logger = createLogger({
+  appId: 'your-app-id',
+  apiKey: 'your-api-key',
+  debug: true,
+  maxLogsPerHour: 2000,
+  exitOnCritical: true
+});
 
-await dbLogger.logInfo('Connected to database');
-await apiLogger.logWarn('Rate limit approaching', { requests: 95, limit: 100 });
-
-// Enable automatic error catching (will EXIT on uncaught errors)
-logger.enableAutoCatch(true, true); // enabled=true, exitOnError=true
-
-// This will be automatically logged as critical and EXIT the process
-throw new Error('Unhandled application error');
+// Context-aware logging
+const userLogger = logger.context('UserService');
+await userLogger.info('User login attempt', {
+  userId: 12345,
+  ip: '192.168.1.1',
+  userAgent: 'Mozilla/5.0...'
+});
 
 // Performance monitoring
 const result = await logger.timeOperation(async () => {
-    return await heavyDatabaseOperation();
-}, 'DatabaseQuery');
+  // Your expensive operation here
+  return await processLargeDataset();
+}, 'DataProcessing');
+
+// Structured logging with tags and metadata
+await logger.error('Payment failed', 
+  { orderId: 'ORDER-123', amount: 99.99 }, // context
+  'Payment processing error details...', // content
+  ['payment', 'error', 'critical'], // tags
+  { retryCount: 3, gateway: 'stripe' } // metadata
+);
 ```
 
-## 📋 API Reference
+## 🔧 Configuration
 
-### Constructor Options
+### LoggerConfig Options
 
 ```javascript
-const logger = new Logger({
-    appId: 'your_app_id',                         // Your application ID
-    apiKey: 'your_api_key',                       // Your API key
-    timeout: 10000,                               // Request timeout (ms)
-    retries: 3,                                   // Retry attempts
-    userAgent: 'Logger-Simple-NodeJS/6.1.0',     // Custom user agent
-    exitOnCritical: true,                         // Exit on critical logs (default: true)
-    autoExit: true,                               // Exit on auto-caught errors (default: true)
-    debug: true                                   // Show debug messages (default: true)
+const logger = createLogger({
+  // Required
+  appId: 'your-app-id',              // Your application ID
+  apiKey: 'your-api-key',            // Your API key
+  
+  // Optional
+  baseUrl: 'https://api.logger-simple.com',  // API base URL
+  timeout: 10000,                    // Request timeout (ms)
+  retries: 3,                        // Retry attempts
+  debug: false,                      // Enable debug logging
+  exitOnCritical: true,              // Exit on critical errors
+  maxLogsPerHour: 1000,             // Rate limit
+  enableRateLimiting: true,          // Enable rate limiting
+  userAgent: 'custom-agent/1.0',    // Custom user agent
+  enableGlobalErrorHandling: true,   // Global error handlers
+  exitOnAuthError: true              // Exit on auth failures
 });
 ```
 
-### Logging Methods
+## 📝 Logging Methods
 
-#### `log(level, message, context?, content?, exitOnCritical?)`
-Generic logging method with optional exit override.
-
-```javascript
-await logger.log('critical', 'System failure', { error: 'details' }, null, false);
-// This critical log won't cause exit due to last parameter
-```
-
-#### `critical(message, context?, content?)`
-⚠️ **WARNING**: Critical logs will **EXIT your application** by default!
+### Basic Logging
 
 ```javascript
-await logger.logCritical('System out of memory', {
-    availableMemory: '50MB',
-    requiredMemory: '500MB',
-    action: 'killing_process'
-});
-// 🚨 Application will exit in 1 second after logging
-```
+// Different log levels
+await logger.success('Operation completed successfully');
+await logger.info('Information message');
+await logger.warn('Warning message');
+await logger.error('Error message');
+await logger.critical('Critical error - app will exit');
 
-### Debug Mode & Console Output
-
-Logger Simple includes built-in debug logging to help you understand what's happening internally. You can control this output:
-
-#### Enable/Disable Debug Mode
-
-```javascript
-// Initialize with debug enabled (default)
-const logger = new Logger({
-    appId: 'your_app_id',
-    apiKey: 'your_api_key',
-    debug: true  // Show internal debug messages
-});
-
-// Initialize with debug disabled (silent mode)
-const logger = new Logger({
-    appId: 'your_app_id',
-    apiKey: 'your_api_key',
-    debug: false  // No internal debug messages
-});
-
-// Change debug mode at runtime
-logger.setDebug(true);   // Enable debug
-logger.setDebug(false);  // Disable debug
-```
-
-#### Debug Output Examples
-
-When debug is **enabled**, you'll see internal Logger Simple messages:
-
-```
-[2025-07-16T12:00:00.000Z] [Logger-Simple] [INFO] Credentials updated
-[2025-07-16T12:00:01.000Z] [Logger-Simple] [SUCCESS] 🛡️ Logger Simple auto-catch enabled
-[2025-07-16T12:00:02.000Z] [Logger-Simple] [ERROR] 🚨 CRITICAL ERROR LOGGED: Database connection lost
-[2025-07-16T12:00:02.000Z] [Logger-Simple] [ERROR] Application will exit in 1 second...
-```
-
-When debug is **disabled**, Logger Simple operates silently without console output.
-
-#### Production Recommendations
-
-```javascript
-// Development mode - show debug messages
-const logger = new Logger({
-    appId: process.env.LOGGER_APP_ID,
-    apiKey: process.env.LOGGER_API_KEY,
-    debug: process.env.NODE_ENV !== 'production',  // Debug in dev only
-    exitOnCritical: process.env.NODE_ENV === 'production'
-});
-
-// Or set based on environment variable
-const logger = new Logger({
-    appId: process.env.LOGGER_APP_ID,
-    apiKey: process.env.LOGGER_API_KEY,
-    debug: process.env.LOGGER_DEBUG === 'true'  // Set via env var
-});
-```
-
-#### `enableAutoCatch(enabled?, exitOnError?)`
-Enable automatic error catching with process termination.
-
-```javascript
-// Enable with exit on errors (recommended for production)
-logger.enableAutoCatch(true, true);
-
-// Enable without exit (for development)
-logger.enableAutoCatch(true, false);
-
-// Now all uncaught exceptions and unhandled rejections will be logged
-// and optionally terminate the process
-```
-
-#### `forceExit(message, context?)`
-Immediately log critical error and exit.
-
-```javascript
-if (criticalSystemFailure) {
-    await logger.forceExit('Critical system failure detected', {
-        subsystem: 'payment_processor',
-        error_code: 'SYS_FAIL_001'
-    });
-    // Process exits immediately after logging
-}
-```
-
-#### `gracefulShutdown(reason?, exitCode?)`
-Perform graceful shutdown with logging.
-
-```javascript
-process.on('SIGTERM', async () => {
-    await logger.gracefulShutdown('Received SIGTERM signal', 0);
-    // Logs shutdown reason and exits gracefully
-});
-```
-
-### Performance & Monitoring
-
-#### `timeOperation(operation, operationName, level?)`
-Monitor operation performance automatically.
-
-```javascript
-const result = await logger.timeOperation(async () => {
-    const data = await database.query('SELECT * FROM users');
-    return processData(data);
-}, 'UserDataProcessing', 'info');
-
-// Automatically logs duration, memory usage, and success/failure
-```
-
-#### `createPerformanceMonitor(operationName)`
-Create reusable performance monitor.
-
-```javascript
-const monitor = logger.createPerformanceMonitor('FileProcessing');
-monitor.start();
-
-// ... do work ...
-
-const metrics = await monitor.end('info', { filesProcessed: 150 });
-console.log(`Operation took ${metrics.duration}ms`);
-```
-
-### Batch Logging
-
-#### `createBatchLogger(maxBatchSize?, maxWaitTime?)`
-Create batch logger for high-volume applications.
-
-```javascript
-const batchLogger = logger.createBatchLogger(50, 10000);
-
-// Add logs to batch (doesn't send immediately)
-batchLogger.add('info', 'User action', { userId: 123 });
-batchLogger.add('info', 'Another action', { userId: 456 });
-
-// Force send batch
-await batchLogger.flush();
-```
-
-### Data Retrieval Methods
-
-#### `getLogs(options?)`
-Retrieve application logs with enhanced statistics.
-
-```javascript
-// Get recent logs
-const logs = await logger.getLogs();
-
-// Get only error logs
-const errorLogs = await logger.getLogs({ level: 'error', limit: 50 });
-
-// Response includes logs and 24h statistics
-console.log(logs.data.logs);           // Array of log entries
-console.log(logs.data.stats_24h);      // 24-hour statistics by level
-console.log(logs.data.valid_levels);   // Valid log levels
-```
-
-#### `getLogStats(days?)`
-Get detailed log statistics and recent critical logs.
-
-```javascript
-// Get 7-day statistics
-const stats = await logger.getLogStats(7);
-
-console.log(stats.data.level_totals);         // Total counts by level
-console.log(stats.data.daily_breakdown);      // Daily breakdown
-console.log(stats.data.recent_critical_logs); // Recent critical logs (last 10)
-```
-
-#### `healthCheck()`
-Comprehensive health and connectivity check.
-
-```javascript
-const health = await logger.healthCheck();
-console.log(health);
-/*
-{
-  timestamp: '2025-07-16T12:00:00.000Z',
-  api_connection: true,
-  app_authenticated: true,
-  response_time: 45,
-  error: null
-}
-*/
+// Generic log method
+await logger.log('info', 'Custom message', context, content, false, tags, metadata);
 ```
 
 ### Context-Aware Logging
 
-#### `context(contextName)`
-Create context-specific logger with sub-context support.
-
 ```javascript
-const userService = logger.context('UserService');
-const dbManager = userService.subContext('DatabaseManager');
-
-await userService.info('User operation started');
-await dbManager.error('Database connection failed');
-
-// Performance monitoring with context
-const result = await userService.timeOperation(async () => {
-    return await processUsers();
-}, 'ProcessAllUsers');
-
-// Force exit with context
-if (criticalError) {
-    await userService.forceExit('Critical user service failure');
-}
-```
-
-### Admin Methods (Master Key Required)
-
-All admin methods require a master API key for authentication:
-
-#### `getUsers(masterKey, limit?)` / `getUser(masterKey, userId)`
-```javascript
-const users = await logger.getUsers('master_key_here', 50);
-const user = await logger.getUser('master_key_here', 123);
-```
-
-#### `createUser(masterKey, userData)` / `updateUser(masterKey, userId, updateData)` / `deleteUser(masterKey, userId)`
-```javascript
-const newUser = await logger.createUser('master_key_here', {
-    username: 'newuser',
-    email: 'user@example.com',
-    password: 'securepassword',
-    role: 'user'
-});
-
-await logger.updateUser('master_key_here', 123, { role: 'admin' });
-await logger.deleteUser('master_key_here', 123);
-```
-
-#### `createApp(masterKey, appData)` / `updateApp(masterKey, appId, updateData)` / `deleteApp(masterKey, appId)`
-```javascript
-const newApp = await logger.createApp('master_key_here', {
-    name: 'My New App',
-    userId: '123',
-    description: 'Application description'
-});
-
-await logger.updateApp('master_key_here', 5, { name: 'Updated Name' });
-await logger.deleteApp('master_key_here', 5);
-```
-
-#### Help Center Management
-```javascript
-// Create posts and replies
-const post = await logger.createPost('api_key_here', {
-    userId: 123,
-    categoryId: 3,
-    title: 'How to integrate Logger Simple',
-    content: 'Step by step guide...'
-});
-
-await logger.replyPost('api_key_here', {
-    postId: post.data.id,
-    userId: 123,
-    content: 'Great tutorial!',
-    isSolution: false
-});
-```
-
-## 🚀 Real-World Examples
-
-### Production Express.js App with Auto-Exit
-
-```javascript
-const express = require('express');
-const { Logger } = require('node-logger-simple');
-
-const logger = new Logger({
-    appId: process.env.LOGGER_APP_ID,
-    apiKey: process.env.LOGGER_API_KEY,
-    exitOnCritical: true  // Exit on critical errors
-});
-
-const app = express();
-
-// Initialize app with startup logging
-logger.initialize('MyAPI', '2.1.0', {
-    environment: process.env.NODE_ENV,
-    port: process.env.PORT || 3000
-});
-
-// Enable auto-catch with exit (production safety)
-logger.enableAutoCatch(true, true);
-
-// Context loggers
-const apiLogger = logger.context('API');
+// Create context loggers
 const dbLogger = logger.context('Database');
+const apiLogger = logger.context('API');
 
-// Performance monitoring middleware
-app.use(async (req, res, next) => {
-    const operation = apiLogger.createPerformanceMonitor(`${req.method} ${req.path}`);
-    operation.start();
-    
-    res.on('finish', async () => {
-        const level = res.statusCode >= 400 ? 'error' : 'info';
-        await operation.end(level, {
-            statusCode: res.statusCode,
-            userAgent: req.get('User-Agent'),
-            ip: req.ip
-        });
-    });
-    
-    next();
-});
+// All logs will include context automatically
+await dbLogger.error('Connection failed');
+// Logs as: "Connection failed" with context: { context: "Database" }
 
-// Critical error handler (will exit app)
-app.use(async (err, req, res, next) => {
-    if (err.critical) {
-        // This will log and exit the application
-        await apiLogger.critical('Critical API error - application will exit', {
-            error: err.message,
-            stack: err.stack,
-            url: req.url,
-            method: req.method
-        });
-        // Process exits automatically after logging
-    } else {
-        await apiLogger.error('API error caught', {
-            error: err.message,
-            url: req.url,
-            method: req.method
-        });
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-// Graceful shutdown handlers
-process.on('SIGTERM', () => logger.gracefulShutdown('SIGTERM received'));
-process.on('SIGINT', () => logger.gracefulShutdown('SIGINT received'));
+// Nested contexts
+const userDbLogger = dbLogger.subContext('Users');
+await userDbLogger.info('User created');
+// Context: { context: "Database::Users" }
 ```
 
-### Database Connection with Auto-Recovery
+### Performance Monitoring
 
 ```javascript
-const mongoose = require('mongoose');
-const logger = new Logger({ /* config */ });
+// Monitor operation performance
+const result = await logger.timeOperation(async () => {
+  const data = await fetchUserData();
+  return processData(data);
+}, 'UserDataProcessing');
 
-const dbLogger = logger.context('MongoDB');
-let connectionAttempts = 0;
-const maxAttempts = 5;
-
-mongoose.connection.on('connected', async () => {
-    connectionAttempts = 0;
-    await dbLogger.success('Connected to MongoDB');
-});
-
-mongoose.connection.on('error', async (err) => {
-    connectionAttempts++;
-    
-    if (connectionAttempts >= maxAttempts) {
-        // Critical: too many failed attempts, exit application
-        await dbLogger.critical('MongoDB connection failed after maximum attempts', {
-            attempts: connectionAttempts,
-            maxAttempts: maxAttempts,
-            error: err.message
-        });
-        // Application will exit automatically
-    } else {
-        await dbLogger.error('MongoDB connection error', { 
-            attempt: connectionAttempts,
-            error: err.message 
-        });
-    }
-});
-
-mongoose.connection.on('disconnected', async () => {
-    await dbLogger.warn('Disconnected from MongoDB');
-});
+// With custom log level
+await logger.timeOperation(
+  () => criticalOperation(),
+  'CriticalOperation',
+  'error' // Log as error level
+);
 ```
 
-### Background Job Processor with Performance Monitoring
+## 🛡️ Error Handling
+
+The logger automatically handles various error scenarios:
+
+### Critical Error Management
 
 ```javascript
-const logger = new Logger({ /* config */ });
-const jobLogger = logger.context('JobProcessor');
-
-async function processJob(jobData) {
-    return await jobLogger.timeOperation(async () => {
-        await jobLogger.logInfo('Job started', { jobId: jobData.id });
-        
-        try {
-            // Simulate heavy work
-            const result = await doHeavyWork(jobData);
-            
-            await jobLogger.logSuccess('Job completed successfully', {
-                jobId: jobData.id,
-                recordsProcessed: result.count
-            });
-            
-            return result;
-        } catch (error) {
-            if (error.critical) {
-                // Critical job failure, exit application
-                await jobLogger.logCritical('Critical job failure - system unstable', {
-                    jobId: jobData.id,
-                    error: error.message,
-                    stack: error.stack
-                });
-                // Process will exit
-            } else {
-                await jobLogger.logError('Job failed', {
-                    jobId: jobData.id,
-                    error: error.message
-                });
-                throw error;
-            }
-        }
-    }, `ProcessJob_${jobData.type}`);
+// Critical errors trigger app shutdown by default
+try {
+  await logger.critical('System failure');
+} catch (error) {
+  // App will exit after logging
 }
 
-// Batch logging for high-volume job systems
-const batchLogger = logger.createBatchLogger(100, 5000);
+// Prevent shutdown for specific critical logs
+await logger.critical('Important but non-fatal error', null, null, false);
+```
 
-function logJobEvent(jobId, event, data) {
-    batchLogger.add('info', `Job ${event}`, { jobId, event, ...data });
+### Global Error Handling
+
+```javascript
+// The logger automatically catches unhandled errors
+process.on('uncaughtException', (error) => {
+  // Automatically logged and handled
+});
+
+process.on('unhandledRejection', (reason) => {
+  // Automatically logged and handled
+});
+```
+
+### Graceful Shutdown
+
+```javascript
+// Graceful shutdown with logging
+await logger.gracefulShutdown('Maintenance mode', 0);
+
+// Force exit with critical error
+await logger.forceExit('Emergency shutdown', {
+  reason: 'Memory limit exceeded',
+  memoryUsage: process.memoryUsage()
+});
+```
+
+## 📊 Monitoring & Analytics
+
+### Health Checks
+
+```javascript
+// Comprehensive health check
+const health = await logger.healthCheck();
+console.log(health);
+/*
+{
+  timestamp: "2024-01-15T10:30:00.000Z",
+  api_connection: true,
+  app_authenticated: true,
+  app_category_valid: true,
+  response_time: 156,
+  client_stats: { ... },
+  rate_limiter: { ... },
+  error_handler: { ... }
+}
+*/
+```
+
+### Statistics
+
+```javascript
+// Client-side statistics
+const stats = logger.getClientStats();
+console.log(stats);
+/*
+{
+  totalLogs: 1523,
+  successfulLogs: 1495,
+  failedLogs: 28,
+  rateLimitedLogs: 5,
+  success_rate: 98,
+  avg_logs_per_minute: 12.5,
+  uptime_human: "2h 15m 30s"
+}
+*/
+
+// Server-side log statistics
+const logStats = await logger.getLogStats(30); // Last 30 days
+console.log(logStats.data);
+```
+
+### Rate Limiting
+
+```javascript
+// Check rate limit status
+const rateLimiter = logger.rateLimiter;
+const status = rateLimiter.getStatus();
+
+console.log(`Rate limit: ${status.currentHourRequests}/${status.maxRequestsPerHour}`);
+console.log(`Available tokens: ${status.availableTokens}`);
+console.log(`Utilization: ${status.utilizationPercent}%`);
+
+// Get timing recommendations for bulk operations
+const timing = rateLimiter.calculateOptimalTiming(100);
+if (!timing.canProceed) {
+  console.log(`Recommendation: ${timing.recommendation}`);
 }
 ```
 
-## 🔒 Security & Best Practices
+## 🎯 Advanced Features
 
-### Environment Variables
-Store credentials securely:
+### Data Retrieval
+
+```javascript
+// Get recent logs
+const logs = await logger.getLogs({
+  level: 'error',
+  limit: 50,
+  search: 'payment failed'
+});
+
+// Get log statistics
+const stats = await logger.getLogStats(7); // Last 7 days
+```
+
+### Default Context
+
+```javascript
+// Set default context for all logs
+logger.setDefaultContext({
+  version: '1.0.0',
+  environment: 'production',
+  server: 'web-01'
+});
+
+// All subsequent logs will include this context
+await logger.info('User action'); 
+// Includes: { version: '1.0.0', environment: 'production', server: 'web-01' }
+```
+
+### Custom Configuration
+
+```javascript
+// Update configuration at runtime
+logger.updateConfig({
+  debug: true,
+  maxLogsPerHour: 2000
+});
+
+// Get current configuration
+const config = logger.getConfig();
+console.log(config);
+```
+
+## 🚨 Error Types
+
+The logger provides specific error types for better error handling:
+
+```javascript
+const { 
+  LoggerError, 
+  ValidationError, 
+  NetworkError, 
+  RateLimitError,
+  ApplicationError,
+  AuthenticationError 
+} = require('node-logger-simple');
+
+try {
+  await logger.info('test');
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.log('Validation failed:', error.field, error.value);
+  } else if (error instanceof NetworkError) {
+    console.log('Network error:', error.statusCode);
+  } else if (error instanceof RateLimitError) {
+    console.log('Rate limited. Reset at:', error.resetTime);
+  }
+}
+```
+
+## 🔍 Debugging
+
+Enable debug mode to see detailed logging information:
+
+```javascript
+const logger = createLogger({
+  appId: 'your-app-id',
+  apiKey: 'your-api-key',
+  debug: true  // Enable debug output
+});
+
+// Debug output will show:
+// [2024-01-15T10:30:00.000Z] [Logger-Simple] [INFO] Logger instance created successfully
+// [2024-01-15T10:30:01.000Z] [Logger-Simple] [INFO] API Request: GET /api.php
+// [2024-01-15T10:30:01.000Z] [Logger-Simple] [INFO] Log sent successfully: INFO - User login...
+```
+
+## 🧪 Testing
+
+The logger is designed to be testable and includes utilities for testing:
+
+```javascript
+// Disable automatic shutdown for testing
+const logger = createLogger({
+  appId: 'test-app-id',
+  apiKey: 'test-api-key',
+  exitOnCritical: false,
+  enableGlobalErrorHandling: false
+});
+
+// Mock API responses for testing
+// (See test examples in /examples/testing.js)
+```
+
+## 🌐 Environment Variables
+
+You can configure the logger using environment variables:
+
 ```bash
-LOGGER_APP_ID=your_app_id
-LOGGER_API_KEY=your_api_key
-NODE_ENV=production
+# .env file
+LOGGER_SIMPLE_APP_ID=your-app-id
+LOGGER_SIMPLE_API_KEY=your-api-key
+LOGGER_SIMPLE_DEBUG=true
+LOGGER_SIMPLE_MAX_LOGS_PER_HOUR=2000
 ```
 
-### Sensitive Data Protection
 ```javascript
-// ❌ Don't log sensitive data
-logger.logInfo('User login', { password: userPassword, creditCard: '4111...' });
-
-// ✅ Log safely
-logger.logInfo('User login successful', { 
-    userId: user.id, 
-    email: user.email.replace(/(.{2}).*(@.*)/, '$1***$2'),
-    loginMethod: 'oauth'
+const logger = createLogger({
+  appId: process.env.LOGGER_SIMPLE_APP_ID,
+  apiKey: process.env.LOGGER_SIMPLE_API_KEY,
+  debug: process.env.LOGGER_SIMPLE_DEBUG === 'true',
+  maxLogsPerHour: parseInt(process.env.LOGGER_SIMPLE_MAX_LOGS_PER_HOUR) || 1000
 });
 ```
 
-### Production Configuration
+## 📁 Examples
+
+Check out the `/examples` directory for complete usage examples:
+
+- [Basic Usage](examples/basic-usage.js)
+- [Express.js Integration](examples/express-integration.js)
+- [Error Handling](examples/error-handling.js)
+- [Performance Monitoring](examples/performance-monitoring.js)
+- [Testing Setup](examples/testing.js)
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+1. **"Application category mismatch"**
+   - Ensure your application is set to "Node.js" in the dashboard
+   - Check that you're using the correct App ID
+
+2. **"Rate limit exceeded"**
+   - Reduce log frequency or increase `maxLogsPerHour`
+   - Check rate limit status with `rateLimiter.getStatus()`
+
+3. **"Authentication failed"**
+   - Verify your API key is correct and active
+   - Ensure the application is active in the dashboard
+
+4. **Network errors**
+   - Check internet connectivity
+   - Verify the API URL is accessible
+   - Check firewall settings
+
+### Debug Information
+
 ```javascript
-const logger = new Logger({
-    appId: process.env.LOGGER_APP_ID,
-    apiKey: process.env.LOGGER_API_KEY,
-    exitOnCritical: process.env.NODE_ENV === 'production', // Exit in production
-    autoExit: process.env.NODE_ENV === 'production',       // Exit on uncaught errors in production
-    debug: process.env.NODE_ENV !== 'production',          // Debug in development only
-    timeout: 15000,  // Longer timeout for production
-    retries: 5       // More retries for production
-});
+// Get comprehensive debug information
+const health = await logger.healthCheck();
+const stats = logger.getClientStats();
+const config = logger.getConfig();
 
-// Enable auto-catch in production only
-if (process.env.NODE_ENV === 'production') {
-    logger.enableAutoCatch(true, true);
-}
+console.log('Health:', health);
+console.log('Stats:', stats);
+console.log('Config:', config);
 ```
 
-### Environment Variables
-```bash
-LOGGER_APP_ID=your_app_id
-LOGGER_API_KEY=your_api_key
-LOGGER_DEBUG=false          # Set to 'true' to enable debug in production
-NODE_ENV=production
-```
+## 🤝 Support
 
-## 📊 Log Levels Guide
-
-| Level | Use Case | Email Alert | Auto-Exit | Examples |
-|-------|----------|-------------|-----------|----------|
-| `success` | Successful operations | No | No | User registration, file upload, payment processed |
-| `info` | General information | No | No | Application startup, user login, configuration loaded |
-| `warn` | Potential issues | No | No | High memory usage, slow response time, deprecated API usage |
-| `error` | Recoverable errors | No | No | Validation failed, API timeout, file not found |
-| `critical` | System failures | **Yes** | **Yes** | Database down, out of memory, unhandled exceptions |
-
-## ⚠️ Important: Auto-Exit Behavior
-
-**By default, Logger Simple will EXIT your application in these scenarios:**
-
-1. **Critical logs**: `logger.critical()` will exit after logging
-2. **Uncaught exceptions**: When `enableAutoCatch(true, true)` is active
-3. **Unhandled promise rejections**: When auto-catch is enabled
-4. **Force exit**: When `forceExit()` is called
-
-To disable auto-exit:
-```javascript
-const logger = new Logger({
-    exitOnCritical: false,  // Don't exit on critical logs
-    autoExit: false         // Don't exit on auto-caught errors
-});
-
-// Or override per call
-await logger.logCritical('Error but don\'t exit', {}, null, false);
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- **Documentation**: [https://logger-simple.com/docs](https://logger-simple.com/docs)
+- **Discord Community**: [https://discord.gg/26HvypuvxR](https://discord.gg/26HvypuvxR)
+- **Email Support**: [support@logger-simple.com](mailto:contact@valloic.dev)
+- **GitHub Issues**: [Report bugs and request features](https://github.com/logger-simple/node-logger-simple/issues)
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## 🙏 Contributing
 
-- **Documentation**: [https://panel.logger-simple.com/docs](https://panel.logger-simple.com/docs)
-- **Help Center**: [https://panel.logger-simple.com/help](https://panel.logger-simple.com/help)
-- **Discord Community**: [https://discord.gg/26HvypuvxR](https://discord.gg/26HvypuvxR)
-- **Email Support**: loggersimple@gmail.com
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## 📊 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes and version history.
 
 ---
 
-**⚠️ Production Ready with Safety Features!** 
+**Made with ❤️ by the Logger Simple Team**
 
-This library is designed to help you catch and handle critical errors before they damage your application. Use the auto-exit features wisely in production environments.
-
-🚀 **Start monitoring your applications today!** Visit [logger-simple.com](https://logger-simple.com)
+[Website](https://logger-simple.com) • [Dashboard](https://logger-simple.com/dashboard) • [Documentation](https://logger-simple.com/docs)
