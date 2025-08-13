@@ -1,6 +1,6 @@
 {
   "name": "node-logger-simple",
-  "version": "6.2.5",
+  "version": "7.2.0",
   "description": "A simple Node.Js logger module with configurable options.",
   "main": "App.js",
   "scripts": {
