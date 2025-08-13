@@ -16,7 +16,7 @@ const Logger = require('./lib/Logger');
  * @param {Object} options - Configuration options
  * @param {string} options.appId - Application ID from Logger Simple dashboard
  * @param {string} options.apiKey - API Key from Logger Simple dashboard
- * @param {string} [options.baseUrl='https://api.logger-simple.com'] - API base URL
+ * @param {string} [options.baseUrl='https://loggersimple.com/api/'] - API base URL
  * @param {number} [options.timeout=10000] - Request timeout in milliseconds
  * @param {boolean} [options.debug=false] - Enable debug logging
  * @returns {Logger} Logger instance
